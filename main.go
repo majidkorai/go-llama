@@ -1276,10 +1276,16 @@ function selectChatFor(port,model){
 }
 
 function addSystemMsg(t){var c=document.getElementById('chatMsgs');c.innerHTML+='<div class="msg system">'+t+'</div>';c.scrollTop=c.scrollHeight;}
-function addMsg(role,text){
+function addMsg(role,text,reasoning){
   var c=document.getElementById('chatMsgs');
   var h=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  c.innerHTML+='<div class="msg '+role+'">'+h+'</div>';
+  var html='<div class="msg '+role+'">';
+  if(reasoning){
+    var r=reasoning.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html+='<div style="color:#94a3b8;font-style:italic;font-size:12px;border-left:2px solid #334155;padding-left:8px;margin-bottom:4px">'+r+'</div>';
+  }
+  html+=h+'</div>';
+  c.innerHTML+=html;
   c.scrollTop=c.scrollHeight;
 }
 
@@ -1295,9 +1301,11 @@ async function sendChat(){
       body:JSON.stringify({model:'default',messages:chatHistory.slice(-20),max_tokens:256,stream:false})
     });
     var d=await r.json();
-    var reply=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message.content:'(no response)';
+    var msg=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message:{};
+    var reply=msg.content||'(no response)';
+    var reasoning=msg.reasoning_content||'';
     chatHistory.push({role:'assistant',content:reply});
-    addMsg('assistant',reply);
+    addMsg('assistant',reply,reasoning);
   }catch(e){addMsg('system','Error: '+e.message);}
 }
 
