@@ -413,6 +413,8 @@ func startServer(mgr *Manager, port string) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
 		fmt.Fprint(w, uiPage)
 	})
 
@@ -1087,9 +1089,11 @@ button.small { width: auto; padding: 4px 12px; font-size: 12px; }
 async function loadModels(){
   var r=await fetch('/api/v1/models'),m=await r.json(),s=document.getElementById('modelSelect'),seen={};
   s.innerHTML='<option value="">— Select model —</option>';
+  if(!m||!m.length){s.innerHTML+='<option value="" disabled>No models found. Use "go-llama pull".</option>';return;}
   m.forEach(function(x){
-    if(!seen[x.Name]){seen[x.Name]=1;
-      s.innerHTML+='<option value="'+x.Name+'">'+x.Name+' ['+x.Source+']</option>';
+    var n=x.Name||'(unnamed)',src=x.Source||'unknown';
+    if(!seen[n]){seen[n]=1;
+      s.innerHTML+='<option value="'+n+'">'+n+' ['+src+']</option>';
     }
   });
 }
