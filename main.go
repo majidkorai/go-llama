@@ -219,6 +219,7 @@ func (m *Manager) Start(model string, port int, extraArgs []string) (*Instance, 
 	}
 	args = append(args, extraArgs...)
 
+	log.Printf("launching llama-server: %s %s", llamaBin, strings.Join(args, " "))
 	cmd := exec.Command(llamaBin, args...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
@@ -236,11 +237,18 @@ func (m *Manager) Start(model string, port int, extraArgs []string) (*Instance, 
 	}
 	m.instances[port] = inst
 
+	log.Printf("instance started: model=%s port=%d pid=%d", model, port, cmd.Process.Pid)
+
 	go func() {
-		cmd.Wait()
+		err := cmd.Wait()
 		m.mu.Lock()
 		if inst.Status == "running" {
 			inst.Status = "stopped"
+			if err != nil {
+				log.Printf("instance stopped with error: port=%d err=%v", port, err)
+			} else {
+				log.Printf("instance stopped: port=%d", port)
+			}
 		}
 		m.mu.Unlock()
 	}()
@@ -497,6 +505,7 @@ func pullModel(ref string) error {
 	}
 	saveIndex(idx)
 
+	log.Printf("model downloaded: %s (%s) → %s", modelName, formatSize(written), dest)
 	fmt.Printf("Downloaded %s (%s)\n", modelName, formatSize(written))
 	return nil
 }
@@ -758,6 +767,7 @@ Then run 'go-llama update' again.`)
 	}
 
 	os.WriteFile(versionFile(), []byte(tagName), 0644)
+	log.Printf("llama-server installed: version=%s backend=%s path=%s", tagName, selected.Name, self)
 	fmt.Printf("\nllama-server %s (%s) installed to %s\n", tagName, selected.Name, self)
 	return nil
 }
@@ -780,8 +790,14 @@ func formatSize(bytes int64) string {
 
 // ── CLI ────────────────────────────────────────────────────────────────
 
+const version = "0.1.0"
+
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) < 2 || os.Args[1] == "--version" || os.Args[1] == "-v" {
+		if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+			fmt.Printf("go-llama %s\n", version)
+			return
+		}
 		printUsage()
 		os.Exit(1)
 	}
