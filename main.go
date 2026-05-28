@@ -329,6 +329,44 @@ func startServer(mgr *Manager, port string) {
 		jsonResponse(w, models)
 	})
 
+	mux.HandleFunc("/api/v1/models/delete", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", 405)
+			return
+		}
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			jsonError(w, err.Error(), 400)
+			return
+		}
+		if req.Name == "" {
+			jsonError(w, "model name is required", 400)
+			return
+		}
+
+		idx := loadIndex()
+		info, ok := idx[req.Name]
+		if !ok {
+			jsonError(w, "model not found", 404)
+			return
+		}
+
+		// Delete the file
+		if err := os.Remove(info.BlobPath); err != nil && !os.IsNotExist(err) {
+			jsonError(w, fmt.Sprintf("error deleting file: %v", err), 500)
+			return
+		}
+
+		// Remove from index
+		delete(idx, req.Name)
+		saveIndex(idx)
+
+		log.Printf("model deleted: %s", req.Name)
+		jsonResponse(w, map[string]string{"status": "deleted", "model": req.Name})
+	})
+
 	mux.HandleFunc("/api/v1/models/pull", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Model string `json:"model"`
@@ -1087,6 +1125,11 @@ button.small { width: auto; padding: 4px 12px; font-size: 12px; }
 
 <div class="card-row">
   <div class="card" style="flex:1">
+    <h2>📦 Downloaded Models <span id="modelCount" class="text-sm" style="font-weight:400"></span></h2>
+    <div id="modelList"><div class="text-sm">Loading...</div></div>
+  </div>
+
+  <div class="card" style="flex:1">
     <h2>🟢 Running Instances <span id="instanceCount" class="text-sm" style="font-weight:400"></span></h2>
     <div id="instances" class="instances-grid"><div class="text-sm">Loading...</div></div>
   </div>
@@ -1124,6 +1167,36 @@ async function loadModels(){
     }
   });
   console.log('Models loaded:',m.length);
+  loadModelList();
+}
+
+// ── Model List (with delete) ──
+async function loadModelList(){
+  var r=await fetch('/api/v1/models'),m=await r.json(),c=document.getElementById('modelList'),count=0;
+  document.getElementById('modelCount').textContent='('+m.length+')';
+  if(!m.length){c.innerHTML='<div class="text-sm">No models downloaded</div>';return;}
+  c.innerHTML=m.map(function(x){
+    var name=x.name||'(unnamed)',size=x.size?fmtSize(x.size):'?';
+    count++;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1e293b">'+
+      '<div><span style="font-size:13px">'+(name.length>50?name.slice(0,50)+'...':name)+'</span><br><span class="text-xs">'+size+' ['+(x.source||'?')+']</span></div>'+
+      '<button class="small danger" onclick="deleteModel(\''+name.replace(/\'/g,'')+'\')" style="width:auto;padding:2px 10px">🗑</button></div>';
+  }).join('');
+}
+
+function fmtSize(b){
+  if(!b)return'?';
+  if(b>1073741824)return(b/1073741824).toFixed(1)+' GB';
+  if(b>1048576)return(b/1048576).toFixed(0)+' MB';
+  return(b/1024).toFixed(0)+' KB';
+}
+
+async function deleteModel(name){
+  if(!confirm('Delete model "'+name+'"?'))return;
+  var r=await fetch('/api/v1/models/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
+  var d=await r.json();
+  if(d.error){alert('Error: '+d.error);return;}
+  loadModels();loadModelList();
 }
 
 // ── Instance Management ──
@@ -1264,6 +1337,7 @@ function refreshChat(){if(chatPort)selectChatFor(chatPort,'');}
 // ── Init ──
 loadModels();loadInstances();refreshChatSelector();
 setInterval(function(){loadInstances();refreshChatSelector();},3000);
+setInterval(function(){loadModelList();},10000);
 </script>
 </body>
 </html>`
