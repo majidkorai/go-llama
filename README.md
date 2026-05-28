@@ -1,6 +1,7 @@
 # go-llama
 
-A lightweight llama.cpp instance manager with full parameter control. Spin up any model on any port with any llama-server flag.
+A lightweight llama.cpp instance manager with full parameter control.
+Spin up any model on any port with any llama-server flag.
 
 ## Install
 
@@ -19,13 +20,13 @@ go build -o go-llama .
 ## Quick Start
 
 ```bash
-# 1. Download the latest llama-server binary (detects GPU)
+# 1. Interactive install — detects GPU, choose CPU/CUDA/Vulkan
 go-llama update
 
 # 2. Pull a model from HuggingFace
 go-llama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
 
-# 3. Run it with custom flags (blocking mode)
+# 3. Run with custom flags (blocking, shows output)
 go-llama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
 
 # 4. Start the web UI manager
@@ -36,43 +37,38 @@ go-llama serve
 
 | Command | Description |
 |---------|-------------|
-| `go-llama update` | Interactive install — detects GPU, choose CPU/CUDA/Vulkan build |
+| `go-llama update` | Interactive install — detects GPU, choose CPU/CUDA/Vulkan/ROCm |
 | `go-llama pull <model>` | Download a GGUF model from HuggingFace |
 | `go-llama list` | List downloaded models |
 | `go-llama run <model> [flags]` | Run a model on port 8081 (blocking, shows output) |
-| `go-llama serve [port]` | Web UI + REST API |
+| `go-llama serve [port]` | Web UI + REST API on :9080 |
 | `go-llama ps` | List running instances |
 | `go-llama stop <port>` | Stop an instance |
 | `go-llama --version` | Show version |
 
 ## Web UI
 
-Start the web UI:
+Open **http://localhost:9080** in your browser.
 
-```bash
-go-llama serve
-```
-
-Open **http://localhost:9080** in your browser. You can:
-
-- **Pull models** from HuggingFace directly in the browser
-- **Launch instances** with custom flags from the UI
-- **Chat** with running instances via the built-in chat panel
-- **Monitor** running instances with port/PID/status
-- **Stop** instances with one click
+- **Pull models** — paste a HuggingFace URL and download from the browser
+- **Launch instances** — select a model, set flags, pick a port
+- **Chat** — built-in chat panel with running instances (proxied, no CORS)
+- **Monitor** — running instances with port/PID/status badge
+- **Stop** — one-click instance termination
+- **Logs** — view llama-server stderr directly in the browser
 
 ## Custom Flags
 
-Pass any llama-server flag directly. Common ones:
+Any llama-server flag works. Common ones:
 
 | Flag | Description |
 |------|-------------|
 | `--n-gpu-layers 99` | Offload all layers to GPU |
-| `--tensor-split 12,8` | Manual GPU split for multi-GPU |
+| `--tensor-split 12,8` | Manual GPU split (e.g. 3060:12GB, 2080:8GB) |
 | `--ctx-size 4096` | Context window |
 | `--flash-attn on` | Flash attention |
 | `--cont-batching` | Continuous batching |
-| `--cache-type-k q4_0` | KV cache quantization |
+| `--cache-type-k q4_0` | KV cache quantization (reduces VRAM) |
 | `--spec-type draft-mtp` | MTP speculative decoding |
 | `-np N` | Parallel slots |
 
@@ -81,37 +77,49 @@ Pass any llama-server flag directly. Common ones:
 ```
 ~/.go-llama/
 ├── bin/
-│   └── llama-server        # Inference engine
+│   └── llama-server        # Inference engine (auto-downloaded or built)
 ├── models/
 │   └── *.gguf              # Downloaded models
+├── logs/
+│   └── port-NNNN.log       # Instance logs (viewable from web UI)
 └── index.json              # Model registry
 ```
 
-Models are pulled from HuggingFace directly. llama-server is downloaded from GitHub releases (or built from source for CUDA on Linux).
+## Notes
+
+- **VRAM**: go-llama needs free GPU memory. Stop Ollama (`systemctl stop ollama`)
+  before launching instances if both use the same GPUs.
+- **Linux CUDA**: pre-built CUDA binaries are not available for Linux on the
+  llama.cpp release page. Build from source or use the Vulkan build instead.
+  See `go-llama update` for build instructions.
+- **Multi-instance**: each instance runs on its own port (8081, 8082, ...).
+  Chat with any running instance from the web UI.
 
 ## Why go-llama?
 
-Ollama hides llama.cpp flags and hardcodes defaults. go-llama exposes every parameter while keeping convenience — model management, web UI, multi-instance, and chat. Perfect for multi-GPU setups, MTP testing, or when you need precise control over inference.
+Ollama hides llama.cpp flags and hardcodes defaults. go-llama exposes every
+parameter while keeping convenience — model management, web UI, multi-instance,
+built-in chat, and full llama-server control. Perfect for multi-GPU setups,
+MTP testing, or when you need precise control over inference.
 
 ## Development Roadmap
 
 ### Phase 1 — Done
-- [x] CLI: `pull`, `list`, `run`, `serve`, `ps`, `stop`, `update`
-- [x] Model pull from HuggingFace
-- [x] llama-server auto-download with GPU detection
-- [x] Web UI: pull models, launch instances, stop, chat
+- [x] CLI: `pull`, `list`, `run`, `serve`, `ps`, `stop`, `update`, `--version`
+- [x] Model pull from HuggingFace (direct download, no Ollama dependency)
+- [x] llama-server auto-download with interactive GPU detection
+- [x] Web UI: pull models, launch/stop instances, chat, log viewer
 - [x] CORS-free chat proxy
-- [x] Interactive install (CPU/CUDA/Vulkan choice)
+- [x] Instance log capture (stderr written to `~/.go-llama/logs/`)
 
 ### Phase 2 — Next
 - [ ] Presets: save/load flag configurations
 - [ ] Token/s metrics display in web UI
 - [ ] Auto-download CUDA builds for Linux from custom CI
 - [ ] Model info display (architecture, quantization, context length)
-- [ ] Log streaming to web UI
+- [ ] Health checks and auto-restart for crashed instances
 
 ### Phase 3 — Future
-- [ ] `go-llama push` — share presets
 - [ ] Multi-host support (distribute across machines)
 - [ ] REST API documentation
 - [ ] VS Code extension integration
