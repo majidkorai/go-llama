@@ -220,9 +220,17 @@ func (m *Manager) Start(model string, port int, extraArgs []string) (*Instance, 
 	args = append(args, extraArgs...)
 
 	log.Printf("launching llama-server: %s %s", llamaBin, strings.Join(args, " "))
+	logDir := filepath.Join(goLLamaDir(), "logs")
+	ensureDir(logDir)
+	logFile := filepath.Join(logDir, fmt.Sprintf("port-%d.log", port))
+	logF, logErr := os.Create(logFile)
+	if logErr != nil {
+		log.Printf("warning: could not create log file %s: %v", logFile, logErr)
+	}
+
 	cmd := exec.Command(llamaBin, args...)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd.Stdout = logF
+	cmd.Stderr = logF
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("starting llama-server: %w", err)
@@ -373,6 +381,25 @@ func startServer(mgr *Manager, port string) {
 			return
 		}
 		jsonResponse(w, map[string]string{"status": "stopped"})
+	})
+
+	mux.HandleFunc("/api/v1/instances/logs", func(w http.ResponseWriter, r *http.Request) {
+		portStr := r.URL.Query().Get("port")
+		logDir := filepath.Join(goLLamaDir(), "logs")
+		logFile := filepath.Join(logDir, fmt.Sprintf("port-%s.log", portStr))
+		data, err := os.ReadFile(logFile)
+		if err != nil {
+			jsonError(w, "log not found", 404)
+			return
+		}
+		lines := strings.Split(string(data), "\n")
+		if len(lines) > 100 {
+			lines = lines[len(lines)-100:]
+		}
+		jsonResponse(w, map[string]interface{}{
+			"port":  portStr,
+			"lines": lines,
+		})
 	})
 
 	mux.HandleFunc("/api/v1/chat", func(w http.ResponseWriter, r *http.Request) {
@@ -1114,6 +1141,7 @@ async function loadInstances(){
       '<div class="actions">'+
         '<button class="small danger" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
         '<button class="small secondary" onclick="selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
+        '<button class="small secondary" onclick="viewLogs('+i.port+')">📋 Logs</button>'+
       '</div></div>';
   }).join('');
 }
@@ -1198,6 +1226,16 @@ async function sendChat(){
   }catch(e){addMsg('system','Error: '+e.message);}
 }
 
+// ── Log Viewer ──
+async function viewLogs(port){
+  var r=await fetch('/api/v1/instances/logs?port='+port),d=await r.json();
+  if(d.error){alert('No logs: '+d.error);return;}
+  var txt=d.lines&&d.lines.length?d.lines.slice(-50).join('\\n'):'(empty)';
+  document.getElementById('logContent').textContent=txt;
+  document.getElementById('logModal').style.display='block';
+}
+function closeLogs(){document.getElementById('logModal').style.display='none';}
+
 // ── Pull Model ──
 async function pullModel(){
   var ref=document.getElementById('pullInput').value.trim();
@@ -1215,6 +1253,13 @@ async function pullModel(){
 
 function refreshChat(){if(chatPort)selectChatFor(chatPort,'');}
 
+<div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000">
+  <div style="background:#1e293b;margin:5% auto;padding:20px;width:80%;max-width:800px;max-height:70vh;border-radius:8px;overflow:auto;border:1px solid #334155">
+    <div class="flex"><h2>📋 Instance Logs</h2><button class="small danger" onclick="closeLogs()">Close</button></div>
+    <pre id="logContent" style="background:#0f172a;padding:12px;border-radius:4px;margin-top:12px;font-size:11px;line-height:1.4;overflow:auto;max-height:55vh;white-space:pre-wrap"></pre>
+  </div>
+</div>
+<script>
 // ── Init ──
 loadModels();loadInstances();refreshChatSelector();
 setInterval(function(){loadInstances();refreshChatSelector();},3000);
