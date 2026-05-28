@@ -140,7 +140,7 @@ func findLlamaServer() string {
 }
 
 func resolveModelBlob(model string) (string, error) {
-	// 1. Check go-llama local models
+	// Check go-llama local models
 	idx := loadIndex()
 	if info, ok := idx[model]; ok {
 		if _, err := os.Stat(info.BlobPath); err == nil {
@@ -151,41 +151,9 @@ func resolveModelBlob(model string) (string, error) {
 		saveIndex(idx)
 	}
 
-	// 2. Check direct file path
+	// Check direct file path
 	if _, err := os.Stat(model); err == nil {
 		return model, nil
-	}
-
-	// 3. Check Ollama blobs (optional compatibility)
-	home, _ := os.UserHomeDir()
-	blobDir := filepath.Join(home, ".ollama", "models", "blobs")
-	manifestDir := filepath.Join(home, ".ollama", "models", "manifests")
-
-	var found string
-	filepath.Walk(manifestDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || found != "" {
-			return nil
-		}
-		data, _ := os.ReadFile(path)
-		var m struct {
-			Config struct {
-				Digest string `json:"digest"`
-			} `json:"config"`
-		}
-		json.Unmarshal(data, &m)
-
-		if strings.Contains(path, model) && m.Config.Digest != "" {
-			blobFile := strings.Replace(m.Config.Digest, ":", "-", 1)
-			bp := filepath.Join(blobDir, blobFile)
-			if _, err := os.Stat(bp); err == nil {
-				found = bp
-			}
-		}
-		return nil
-	})
-
-	if found != "" {
-		return found, nil
 	}
 
 	return model, nil
@@ -297,74 +265,15 @@ func (m *Manager) List() []*Instance {
 
 func listModels() ([]ModelInfo, error) {
 	var models []ModelInfo
-	seen := make(map[string]bool)
 
-	// 1. go-llama local models
+	// Scan go-llama's local model storage
 	idx := loadIndex()
-	for name, info := range idx {
+	for _, info := range idx {
 		if _, err := os.Stat(info.BlobPath); err == nil {
 			info.Source = "local"
 			models = append(models, info)
-			seen[name] = true
 		}
 	}
-
-	// 2. Ollama models (optional)
-	home, _ := os.UserHomeDir()
-	manifestDir := filepath.Join(home, ".ollama", "models", "manifests")
-	blobDir := filepath.Join(home, ".ollama", "models", "blobs")
-
-	filepath.Walk(manifestDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-		data, _ := os.ReadFile(path)
-		var manifest struct {
-			Config struct{ Digest string } `json:"config"`
-			Layers []struct {
-				MediaType string `json:"mediaType"`
-				Digest    string `json:"digest"`
-				Size      int64  `json:"size"`
-			} `json:"layers"`
-		}
-		if json.Unmarshal(data, &manifest) != nil {
-			return nil
-		}
-
-		var blobDigest string
-		var size int64
-		for _, layer := range manifest.Layers {
-			if strings.Contains(layer.MediaType, "gguf") {
-				blobDigest = layer.Digest
-				size = layer.Size
-				break
-			}
-		}
-		if blobDigest == "" {
-			return nil
-		}
-
-		blobFile := strings.Replace(blobDigest, ":", "-", 1)
-		blobPath := filepath.Join(blobDir, blobFile)
-
-		relPath, _ := filepath.Rel(manifestDir, path)
-		modelName := strings.ReplaceAll(relPath, string(filepath.Separator), ":")
-		modelName = strings.TrimSuffix(modelName, filepath.Ext(modelName))
-		if idx := strings.LastIndex(modelName, ":"); idx > 0 {
-			modelName = modelName[:idx] + ":" + modelName[idx+1:]
-		}
-
-		if !seen[modelName] {
-			models = append(models, ModelInfo{
-				Name:     modelName,
-				BlobPath: blobPath,
-				Size:     size,
-				Source:   "ollama",
-			})
-			seen[modelName] = true
-		}
-		return nil
-	})
 
 	return models, nil
 }
