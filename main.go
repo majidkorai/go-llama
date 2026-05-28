@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,8 +55,16 @@ func modelsDir() string {
 	return filepath.Join(goLLamaDir(), "models")
 }
 
+func binDir() string {
+	return filepath.Join(goLLamaDir(), "bin")
+}
+
 func indexFile() string {
 	return filepath.Join(goLLamaDir(), "index.json")
+}
+
+func versionFile() string {
+	return filepath.Join(goLLamaDir(), "llama-server-version.txt")
 }
 
 func ensureDir(dir string) {
@@ -123,9 +134,16 @@ func NewManager() *Manager {
 }
 
 func findLlamaServer() string {
+	// 1. Check go-llama's own bin directory first
+	self := filepath.Join(binDir(), "llama-server")
+	if _, err := os.Stat(self); err == nil {
+		return self
+	}
+	// 2. Check system PATH
 	if path, err := exec.LookPath("llama-server"); err == nil {
 		return path
 	}
+	// 3. Check common locations
 	candidates := []string{
 		"/usr/local/lib/ollama/llama-server",
 		"/usr/local/bin/llama-server",
@@ -483,6 +501,155 @@ func pullModel(ref string) error {
 	return nil
 }
 
+// ── llama-server Download ──────────────────────────────────────────────
+
+func llamaServerDownloadURL() (string, string, error) {
+	// Fetch latest release
+	resp, err := http.Get("https://api.github.com/repos/ggml-org/llama.cpp/releases/latest")
+	if err != nil {
+		return "", "", fmt.Errorf("fetching latest release: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var release struct {
+		TagName string `json:"tag_name"`
+		Assets  []struct {
+			Name               string `json:"name"`
+			BrowserDownloadURL string `json:"browser_download_url"`
+		} `json:"assets"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", "", fmt.Errorf("parsing release: %w", err)
+	}
+
+	// Determine the right binary for this platform
+	osName := runtime.GOOS
+	arch := runtime.GOARCH
+	if arch == "x86_64" || arch == "amd64" {
+		arch = "x64"
+	}
+
+	var prefix string
+	switch osName {
+	case "linux":
+		prefix = "llama-" + release.TagName + "-bin-ubuntu-" + arch
+	case "darwin":
+		prefix = "llama-" + release.TagName + "-bin-macos-" + arch
+	case "windows":
+		prefix = "llama-" + release.TagName + "-bin-win-" + arch
+	default:
+		return "", "", fmt.Errorf("unsupported platform: %s/%s", osName, arch)
+	}
+
+	// Try to find a matching asset
+	for _, asset := range release.Assets {
+		if strings.HasPrefix(asset.Name, prefix) {
+			return asset.BrowserDownloadURL, release.TagName, nil
+		}
+	}
+
+	// For Linux CUDA, there's no pre-built CUDA binary on the releases page.
+	// Return the CPU build as fallback.
+	for _, asset := range release.Assets {
+		if strings.HasPrefix(asset.Name, prefix) && !strings.Contains(asset.Name, "openvino") && !strings.Contains(asset.Name, "rocm") && !strings.Contains(asset.Name, "vulkan") {
+			return asset.BrowserDownloadURL, release.TagName, nil
+		}
+	}
+
+	return "", "", fmt.Errorf("no pre-built llama-server found for %s/%s", osName, arch)
+}
+
+func ensureLlamaServer() error {
+	self := filepath.Join(binDir(), "llama-server")
+	if _, err := os.Stat(self); err == nil {
+		// Check version
+		cmd := exec.Command(self, "--version")
+		out, _ := cmd.Output()
+		_ = out
+		return nil // already installed
+	}
+
+	fmt.Println("llama-server not found. Downloading...")
+	url, tag, err := llamaServerDownloadURL()
+	if err != nil {
+		return fmt.Errorf("%w\n\nTry building from source:\n  git clone https://github.com/ggml-org/llama.cpp\n  cd llama.cpp && cmake -B build -DGGML_CUDA=ON && cmake --build build -j --target llama-server\n  cp build/bin/llama-server ~/.go-llama/bin/", err)
+	}
+
+	ensureDir(binDir())
+
+	// Download archive
+	tmpFile := filepath.Join(binDir(), "llama-server.tar.gz")
+	defer os.Remove(tmpFile)
+
+	fmt.Printf("Downloading %s ...\n", url)
+	dlResp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("downloading: %w", err)
+	}
+	defer dlResp.Body.Close()
+
+	out, err := os.Create(tmpFile)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, dlResp.Body)
+	out.Close()
+	if err != nil {
+		return fmt.Errorf("downloading: %w", err)
+	}
+
+	// Extract
+	gzr, err := gzip.NewReader(tmpFileReader(tmpFile))
+	if err != nil {
+		return fmt.Errorf("extracting: %w", err)
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+	found := false
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("extracting: %w", err)
+		}
+		// Look for llama-server or llama-server.exe in the archive
+		name := filepath.Base(header.Name)
+		if name == "llama-server" || name == "llama-server.exe" {
+			outFile := filepath.Join(binDir(), name)
+			outF, err := os.Create(outFile)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(outF, tr); err != nil {
+				outF.Close()
+				return err
+			}
+			outF.Close()
+			os.Chmod(outFile, 0755)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("llama-server not found in downloaded archive")
+	}
+
+	// Save version
+	os.WriteFile(versionFile(), []byte(tag), 0644)
+	fmt.Printf("llama-server %s installed to %s\n", tag, self)
+	fmt.Println("Note: CPU-only build. For CUDA, build from source and copy to ~/.go-llama/bin/llama-server")
+	return nil
+}
+
+func tmpFileReader(path string) io.ReadCloser {
+	r, _ := os.Open(path)
+	return r
+}
+
 func formatSize(bytes int64) string {
 	switch {
 	case bytes >= 1<<30:
@@ -510,6 +677,12 @@ func main() {
 	mgr := NewManager()
 
 	switch os.Args[1] {
+	case "update":
+		if err := ensureLlamaServer(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
 	case "pull":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: go-llama pull hf.co/user/repo:quant")
@@ -538,6 +711,7 @@ func main() {
 		}
 
 	case "serve":
+		ensureLlamaServer() // best-effort
 		port := "9080"
 		if len(os.Args) > 2 {
 			port = os.Args[2]
@@ -550,14 +724,26 @@ func main() {
 			fmt.Println("Usage: go-llama run <model> [flags...]")
 			os.Exit(1)
 		}
+		// Auto-ensure llama-server is available
+		if err := ensureLlamaServer(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		}
 		model := os.Args[2]
 		extraArgs := os.Args[3:]
-		inst, err := mgr.Start(model, 8081, extraArgs)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+
+		// Check if server is running, if not start one
+		if len(mgr.List()) == 0 {
+			inst, err := mgr.Start(model, 8081, extraArgs)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Started %s on port %d (PID %d)\n", inst.Model, inst.Port, inst.PID)
+			fmt.Printf("Chat: http://localhost:%d\n", inst.Port)
+			fmt.Println("Press Ctrl+C to stop")
+			// Block until signal
+			select {}
 		}
-		fmt.Printf("Started %s on port %d (PID %d)\n", inst.Model, inst.Port, inst.PID)
 
 	case "ps":
 		instances := mgr.List()
@@ -592,6 +778,7 @@ func printUsage() {
 	fmt.Println(`go-llama — llama.cpp instance manager
 
 Usage:
+  go-llama update                 Download/update llama-server binary
   go-llama pull <model>           Download model from HuggingFace
   go-llama list                   List available models
   go-llama serve [port]           Start manager with web UI (default :9080)
@@ -600,10 +787,15 @@ Usage:
   go-llama stop <port>            Stop an instance
 
 Examples:
+  go-llama update
   go-llama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
-  go-llama list
-  go-llama run qwen3.6:35b --tensor-split 12,8
-  go-llama serve`)
+  go-llama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
+  go-llama serve
+
+Tip:
+  Models are stored in ~/.go-llama/models/
+  llama-server binary in ~/.go-llama/bin/ (auto-downloaded via 'go-llama update')
+  For CUDA on Linux: build from source and copy the binary to ~/.go-llama/bin/`)
 }
 
 // ── Web UI ─────────────────────────────────────────────────────────────
