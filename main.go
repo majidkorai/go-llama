@@ -1091,11 +1091,12 @@ async function loadModels(){
   s.innerHTML='<option value="">— Select model —</option>';
   if(!m||!m.length){s.innerHTML+='<option value="" disabled>No models found. Use "go-llama pull".</option>';return;}
   m.forEach(function(x){
-    var n=x.Name||'(unnamed)',src=x.Source||'unknown';
+    var n=x.name||'(unnamed)',src=x.source||'unknown';
     if(!seen[n]){seen[n]=1;
       s.innerHTML+='<option value="'+n+'">'+n+' ['+src+']</option>';
     }
   });
+  console.log('Models loaded:',m.length);
 }
 
 // ── Instance Management ──
@@ -1104,14 +1105,15 @@ async function loadInstances(){
   document.getElementById('instanceCount').textContent='('+list.length+')';
   if(!list.length){c.innerHTML='<div class="text-sm">No running instances</div>';return;}
   c.innerHTML=list.map(function(i){
-    var statusClass=i.Status=='running'?'':'stopped';
-    var badgeClass=i.Status=='running'?'badge-running':'badge-stopped';
-    return '<div class="instance-card '+statusClass+'">'+
-      '<div class="title">'+(i.Model.length>40?i.Model.slice(0,40)+'...':i.Model)+'</div>'+
-      '<div class="meta">Port: '+i.Port+' | PID: '+i.PID+' | <span class="badge '+badgeClass+'">'+i.Status+'</span></div>'+
+    var sc=i.status=='running'?'':'stopped';
+    var bc=i.status=='running'?'badge-running':'badge-stopped';
+    var mn=i.model||'?';
+    return '<div class="instance-card '+sc+'">'+
+      '<div class="title">'+(mn.length>40?mn.slice(0,40)+'...':mn)+'</div>'+
+      '<div class="meta">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span></div>'+
       '<div class="actions">'+
-        '<button class="small danger" onclick="stopInstance('+i.Port+')">⏹ Stop</button>'+
-        '<button class="small secondary" onclick="selectChatFor('+i.Port+',\''+i.Model.replace(/\'/g,'')+'\')">💬 Chat</button>'+
+        '<button class="small danger" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
+        '<button class="small secondary" onclick="selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
       '</div></div>';
   }).join('');
 }
@@ -1123,7 +1125,7 @@ async function launchInstance(){
   var r=await fetch('/api/v1/instances',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,port:p,flags:f})});
   if(!r.ok){var e=await r.text();alert('Error: '+e);return;}
   var i=await r.json();
-  document.getElementById('portInput').value=i.Port+1;
+  document.getElementById('portInput').value=(i.port||0)+1;
   loadInstances();refreshChatSelector();
 }
 
@@ -1148,7 +1150,10 @@ var chatHistory=[];
 async function refreshChatSelector(){
   var r=await fetch('/api/v1/instances'),list=await r.json(),s=document.getElementById('chatInstanceSelect');
   s.innerHTML='<option value="">— select running instance —</option>';
-  list.forEach(function(i){s.innerHTML+='<option value="'+i.Port+'"'+(chatPort==i.Port?' selected':'')+'>'+i.Port+' - '+(i.Model.length>35?i.Model.slice(0,35)+'...':i.Model)+'</option>';});
+  list.forEach(function(i){
+    var mn=i.model||'?';
+    s.innerHTML+='<option value="'+i.port+'"'+(chatPort==i.port?' selected':'')+'>'+i.port+' - '+(mn.length>35?mn.slice(0,35)+'...':mn)+'</option>';
+  });
   if(!list.length){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
 }
 
