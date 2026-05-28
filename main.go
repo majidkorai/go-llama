@@ -1221,7 +1221,9 @@ async function loadInstances(){
 
 async function launchInstance(){
   var m=document.getElementById('modelSelect').value,p=parseInt(document.getElementById('portInput').value),f=[];
-  document.querySelectorAll('.flag-input').forEach(function(el){var v=el.value.trim();if(v)f.push(v);});
+  document.querySelectorAll('.flag-input').forEach(function(el){
+    (el.value.trim().split(/\s+/)).forEach(function(v){if(v)f.push(v);});
+  });
   if(!m){alert('Select a model');return;}
   var r=await fetch('/api/v1/instances',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,port:p,flags:f})});
   if(!r.ok){var e=await r.text();alert('Error: '+e);return;}
