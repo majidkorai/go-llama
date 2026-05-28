@@ -386,6 +386,21 @@ func startServer(mgr *Manager, port string) {
 		jsonResponse(w, models)
 	})
 
+	mux.HandleFunc("/api/v1/models/pull", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Model string `json:"model"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			jsonError(w, err.Error(), 400)
+			return
+		}
+		if err := pullModel(req.Model); err != nil {
+			jsonError(w, err.Error(), 500)
+			return
+		}
+		jsonResponse(w, map[string]string{"status": "ok", "model": req.Model})
+	})
+
 	mux.HandleFunc("/api/v1/instances", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -693,79 +708,133 @@ const uiPage = `<!DOCTYPE html>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 1200px; margin: 0 auto; }
-h1 { color: #a78bfa; margin-bottom: 20px; }
-h2 { color: #c4b5fd; margin: 20px 0 10px; }
+h1 { color: #a78bfa; margin-bottom: 4px; }
+.subtitle { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+h2 { color: #c4b5fd; margin: 16px 0 8px; font-size: 16px; }
 .card { background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.card-row { display: flex; gap: 16px; }
+.card-row .card { flex: 1; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .instance { border-left: 3px solid #22c55e; }
 .instance.stopped { border-left-color: #ef4444; }
 label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
-select, input, button { width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; font-size: 14px; margin-bottom: 12px; }
-button { background: #7c3aed; border: none; cursor: pointer; font-weight: 600; }
+select, input, button { width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; font-size: 14px; margin-bottom: 8px; }
+button { background: #7c3aed; border: none; cursor: pointer; font-weight: 600; transition: background .2s; }
 button:hover { background: #6d28d9; }
+button.secondary { background: #334155; }
+button.secondary:hover { background: #475569; }
 button.danger { background: #dc2626; }
 button.danger:hover { background: #b91c1c; }
-.flag-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.flag-row input { flex: 1; }
+button.success { background: #16a34a; }
+button.success:hover { background: #15803d; }
+button.small { width: auto; padding: 4px 12px; font-size: 12px; }
+.flag-row { display: flex; gap: 8px; margin-bottom: 4px; }
+.flag-row input { flex: 1; margin-bottom: 0; }
 .flag-row button { width: auto; padding: 8px 16px; background: #ef4444; }
-.mt-10 { margin-top: 10px; }
+.mt-8 { margin-top: 8px; }
 .text-sm { font-size: 12px; color: #64748b; }
+.text-xs { font-size: 11px; color: #475569; }
 .flex { display: flex; justify-content: space-between; align-items: center; }
+.tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px; }
+.tag-local { background: #1e3a5f; color: #60a5fa; }
+.tag-ollama { background: #3b1f3b; color: #c084fc; }
+.progress { width: 100%; height: 4px; background: #0f172a; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.progress-bar { height: 100%; background: #7c3aed; border-radius: 2px; transition: width .5s; }
+.pull-status { font-size: 12px; color: #94a3b8; margin-top: 6px; }
 </style>
 </head>
 <body>
 <h1>go-llama</h1>
+<div class="subtitle">llama.cpp instance manager</div>
 
-<div class="card">
-  <h2>New Instance</h2>
-  <label>Model</label>
-  <select id="modelSelect"><option value="">Loading...</option></select>
-  <label>Port</label>
-  <input type="number" id="portInput" value="8081" min="8081" max="8099">
-  <label>Extra Flags</label>
-  <div id="flagsContainer">
-    <div class="flag-row">
-      <input type="text" placeholder="--flag value" class="flag-input">
-      <button onclick="this.parentElement.remove()">x</button>
-    </div>
+<div class="card-row">
+  <div class="card">
+    <h2>Pull Model</h2>
+    <input type="text" id="pullInput" placeholder="hf.co/user/repo:Q4_K_M" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M">
+    <button onclick="pullModel()" id="pullBtn">Pull</button>
+    <div id="pullStatus" class="pull-status"></div>
   </div>
-  <button onclick="addFlag()">+ Add Flag</button>
-  <button class="mt-10" onclick="launchInstance()">Launch</button>
+
+  <div class="card">
+    <h2>New Instance</h2>
+    <label>Model</label>
+    <select id="modelSelect"><option value="">Loading...</option></select>
+    <label>Port</label>
+    <input type="number" id="portInput" value="8081" min="8081" max="8099">
+    <label>Extra Flags</label>
+    <div id="flagsContainer">
+      <div class="flag-row">
+        <input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input">
+        <button class="small danger" onclick="this.parentElement.remove()">x</button>
+      </div>
+    </div>
+    <button class="secondary small" onclick="addFlag()">+ Add Flag</button>
+    <button class="mt-8" onclick="launchInstance()">Launch</button>
+  </div>
 </div>
 
 <div class="card">
   <h2>Running Instances</h2>
-  <div id="instances" class="grid"></div>
+  <div id="instances" class="grid"><div class="text-sm">Loading...</div></div>
 </div>
 
 <script>
 function addFlag(){
   var c=document.getElementById('flagsContainer'),r=document.createElement('div');
   r.className='flag-row';
-  r.innerHTML='<input type="text" placeholder="--flag value" class="flag-input"><button onclick="this.parentElement.remove()">x</button>';
+  r.innerHTML='<input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input"><button class="small danger" onclick="this.parentElement.remove()">x</button>';
   c.appendChild(r);
 }
+
 async function loadModels(){
   var r=await fetch('/api/v1/models'),m=await r.json(),s=document.getElementById('modelSelect'),seen={};
   s.innerHTML='<option value="">Select model...</option>';
-  m.forEach(function(x){if(!seen[x.Name]){seen[x.Name]=1;s.innerHTML+='<option value="'+x.Name+'">'+x.Name+'</option>';}});
+  m.forEach(function(x){
+    if(!seen[x.Name]){seen[x.Name]=1;
+      var tag=x.Source=='local'?'<span class="tag tag-local">local</span>':'<span class="tag tag-ollama">ollama</span>';
+      s.innerHTML+='<option value="'+x.Name+'">'+x.Name+' '+tag+'</option>';
+    }
+  });
 }
+
 async function loadInstances(){
   var r=await fetch('/api/v1/instances'),list=await r.json(),c=document.getElementById('instances');
   if(!list.length){c.innerHTML='<div class="text-sm">No running instances</div>';return;}
-  c.innerHTML=list.map(function(i){return'<div class="card instance"><div class="flex"><strong>'+i.Model+'</strong><span>:'+i.Port+'</span></div><div class="text-sm mt-10">PID: '+i.PID+' | Status: '+i.Status+'</div><button class="danger mt-10" onclick="stopInstance('+i.Port+')">Stop</button></div>';}).join('');
+  c.innerHTML=list.map(function(i){
+    return '<div class="card instance"><div class="flex"><strong>'+i.Model+'</strong><span>:'+i.Port+'</span></div>'+
+      '<div class="text-sm mt-8">PID: '+i.PID+' | Status: <strong>'+i.Status+'</strong></div>'+
+      '<button class="danger small mt-8" onclick="stopInstance('+i.Port+')">Stop</button></div>';
+  }).join('');
 }
+
+async function pullModel(){
+  var ref=document.getElementById('pullInput').value.trim();
+  if(!ref){alert('Enter a model reference like hf.co/user/repo:Q4_K_M');return;}
+  var btn=document.getElementById('pullBtn'),status=document.getElementById('pullStatus');
+  btn.disabled=true;btn.textContent='Pulling...';status.textContent='Starting download...';
+  try{
+    var r=await fetch('/api/v1/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:ref})});
+    var d=await r.json();
+    if(d.error){status.textContent='Error: '+d.error;alert(d.error);}
+    else{status.textContent='Downloaded '+ref;loadModels();}
+  }catch(e){status.textContent='Error: '+e;alert(e);}
+  btn.disabled=false;btn.textContent='Pull';
+}
+
 async function launchInstance(){
   var m=document.getElementById('modelSelect').value,p=parseInt(document.getElementById('portInput').value),f=[];
   document.querySelectorAll('.flag-input').forEach(function(el){var v=el.value.trim();if(v)f.push(v);});
+  if(!m){alert('Select a model');return;}
   var r=await fetch('/api/v1/instances',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,port:p,flags:f})});
-  if(!r.ok){alert('Error: '+await r.text());return;}
+  if(!r.ok){var e=await r.text();alert('Error: '+e);return;}
   var i=await r.json();
   document.getElementById('portInput').value=i.Port+1;
   loadInstances();
 }
+
 async function stopInstance(p){await fetch('/api/v1/instances/stop?port='+p,{method:'POST'});loadInstances();}
-loadModels();loadInstances();setInterval(loadInstances,5000);
+
+loadModels();loadInstances();setInterval(loadInstances,3000);
 </script>
 </body>
 </html>`
