@@ -1252,6 +1252,7 @@ async function pullModel(){
 }
 
 function refreshChat(){if(chatPort)selectChatFor(chatPort,'');}
+</script>
 
 <div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000">
   <div style="background:#1e293b;margin:5% auto;padding:20px;width:80%;max-width:800px;max-height:70vh;border-radius:8px;overflow:auto;border:1px solid #334155">
