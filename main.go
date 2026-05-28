@@ -375,6 +375,38 @@ func startServer(mgr *Manager, port string) {
 		jsonResponse(w, map[string]string{"status": "stopped"})
 	})
 
+	mux.HandleFunc("/api/v1/chat", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", 405)
+			return
+		}
+		portStr := r.URL.Query().Get("port")
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			jsonError(w, "port query parameter is required", 400)
+			return
+		}
+
+		// Read the incoming request body
+		var body json.RawMessage
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			jsonError(w, "invalid request body", 400)
+			return
+		}
+
+		// Proxy to llama-server
+		target := fmt.Sprintf("http://127.0.0.1:%d/v1/chat/completions", port)
+		resp, err := http.Post(target, "application/json", strings.NewReader(string(body)))
+		if err != nil {
+			jsonError(w, fmt.Sprintf("proxy error: %v", err), 502)
+			return
+		}
+		defer resp.Body.Close()
+
+		w.Header().Set("Content-Type", "application/json")
+		io.Copy(w, resp.Body)
+	})
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -941,61 +973,78 @@ const uiPage = `<!DOCTYPE html>
 <title>go-llama</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 1200px; margin: 0 auto; }
-h1 { color: #a78bfa; margin-bottom: 4px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 1400px; margin: 0 auto; }
+h1 { color: #a78bfa; margin-bottom: 4px; display: inline-block; }
 .subtitle { color: #64748b; font-size: 14px; margin-bottom: 20px; }
-h2 { color: #c4b5fd; margin: 16px 0 8px; font-size: 16px; }
+h2 { color: #c4b5fd; margin: 0 0 12px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
 .card { background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155; }
-.card-row { display: flex; gap: 16px; }
-.card-row .card { flex: 1; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-.instance { border-left: 3px solid #22c55e; }
-.instance.stopped { border-left-color: #ef4444; }
-label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+.card-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.card-row .card { flex: 1; min-width: 300px; }
+.label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 select, input, button { width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; font-size: 14px; margin-bottom: 8px; }
-button { background: #7c3aed; border: none; cursor: pointer; font-weight: 600; transition: background .2s; }
+select option { background: #1e293b; }
+button { background: #7c3aed; border: none; cursor: pointer; font-weight: 600; }
 button:hover { background: #6d28d9; }
 button.secondary { background: #334155; }
 button.secondary:hover { background: #475569; }
 button.danger { background: #dc2626; }
 button.danger:hover { background: #b91c1c; }
-button.success { background: #16a34a; }
-button.success:hover { background: #15803d; }
 button.small { width: auto; padding: 4px 12px; font-size: 12px; }
 .flag-row { display: flex; gap: 8px; margin-bottom: 4px; }
 .flag-row input { flex: 1; margin-bottom: 0; }
-.flag-row button { width: auto; padding: 8px 16px; background: #ef4444; }
+.flag-row button { width: auto; }
 .mt-8 { margin-top: 8px; }
-.text-sm { font-size: 12px; color: #64748b; }
+.text-sm { font-size: 12px; color: #94a3b8; }
 .text-xs { font-size: 11px; color: #475569; }
 .flex { display: flex; justify-content: space-between; align-items: center; }
-.tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px; }
-.tag-local { background: #1e3a5f; color: #60a5fa; }
-.tag-ollama { background: #3b1f3b; color: #c084fc; }
-.progress { width: 100%; height: 4px; background: #0f172a; border-radius: 2px; margin-top: 8px; overflow: hidden; }
-.progress-bar { height: 100%; background: #7c3aed; border-radius: 2px; transition: width .5s; }
-.pull-status { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.badge-local { background: #1e3a5f; color: #60a5fa; }
+.badge-ollama { background: #3b1f3b; color: #c084fc; }
+.badge-running { background: #064e3b; color: #34d399; }
+.badge-stopped { background: #450a0a; color: #f87171; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.instances-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+.instance-card { border-left: 4px solid #22c55e; padding: 12px; background: #1e293b; border-radius: 0 8px 8px 0; border: 1px solid #334155; border-left-width: 4px; }
+.instance-card.stopped { border-left-color: #ef4444; opacity: 0.6; }
+.instance-card .title { font-weight: 600; font-size: 14px; word-break: break-all; }
+.instance-card .meta { font-size: 11px; color: #64748b; margin-top: 4px; }
+.instance-card .actions { margin-top: 8px; display: flex; gap: 8px; }
+.chat-area { display: flex; flex-direction: column; height: 400px; }
+.chat-msgs { flex: 1; overflow-y: auto; padding: 8px; background: #0f172a; border-radius: 4px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+.chat-msgs .msg { margin-bottom: 8px; padding: 6px 10px; border-radius: 6px; max-width: 85%; }
+.chat-msgs .user { background: #1e3a5f; margin-left: auto; }
+.chat-msgs .assistant { background: #1e293b; border: 1px solid #334155; }
+.chat-msgs .system { background: #1a1a2e; color: #94a3b8; font-style: italic; font-size: 11px; text-align: center; }
+.chat-input-row { display: flex; gap: 8px; }
+.chat-input-row input { flex: 1; margin-bottom: 0; }
+.chat-input-row button { width: auto; padding: 8px 20px; }
+.empty-state { text-align: center; padding: 40px 20px; color: #475569; }
+.empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+.chat-panel { display: none; }
+.chat-panel.active { display: flex; flex-direction: column; height: 450px; }
+.instance-selector { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.instance-selector select { margin-bottom: 0; }
 </style>
 </head>
 <body>
-<h1>go-llama</h1>
+<div class="flex"><h1>go-llama</h1> <span class="subtitle" style="margin-bottom:0">v0.1.0</span></div>
 <div class="subtitle">llama.cpp instance manager</div>
 
 <div class="card-row">
   <div class="card">
-    <h2>Pull Model</h2>
+    <h2>📥 Pull Model</h2>
     <input type="text" id="pullInput" placeholder="hf.co/user/repo:Q4_K_M" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M">
     <button onclick="pullModel()" id="pullBtn">Pull</button>
-    <div id="pullStatus" class="pull-status"></div>
+    <div id="pullStatus" class="text-sm" style="margin-top:4px"></div>
   </div>
 
   <div class="card">
-    <h2>New Instance</h2>
-    <label>Model</label>
-    <select id="modelSelect"><option value="">Loading...</option></select>
-    <label>Port</label>
+    <h2>🚀 New Instance</h2>
+    <div class="label">Model</div>
+    <select id="modelSelect"><option value="">Loading models...</option></select>
+    <div class="label">Port</div>
     <input type="number" id="portInput" value="8081" min="8081" max="8099">
-    <label>Extra Flags</label>
+    <div class="label">Flags</div>
     <div id="flagsContainer">
       <div class="flag-row">
         <input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input">
@@ -1007,52 +1056,60 @@ button.small { width: auto; padding: 4px 12px; font-size: 12px; }
   </div>
 </div>
 
-<div class="card">
-  <h2>Running Instances</h2>
-  <div id="instances" class="grid"><div class="text-sm">Loading...</div></div>
+<div class="card-row">
+  <div class="card" style="flex:1">
+    <h2>🟢 Running Instances <span id="instanceCount" class="text-sm" style="font-weight:400"></span></h2>
+    <div id="instances" class="instances-grid"><div class="text-sm">Loading...</div></div>
+  </div>
+
+  <div class="card" style="flex:1">
+    <h2>💬 Chat</h2>
+    <div class="instance-selector">
+      <select id="chatInstanceSelect" onchange="selectChatInstance()"><option value="">— select running instance —</option></select>
+      <button class="small secondary" onclick="refreshChat()">↻</button>
+    </div>
+    <div id="chatPanel" class="chat-panel">
+      <div id="chatMsgs" class="chat-msgs"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key=='Enter')sendChat()">
+        <button onclick="sendChat()">Send</button>
+      </div>
+    </div>
+    <div id="chatEmpty" class="empty-state">
+      <div class="icon">💬</div>
+      <div>Launch an instance to start chatting</div>
+    </div>
+  </div>
 </div>
 
 <script>
-function addFlag(){
-  var c=document.getElementById('flagsContainer'),r=document.createElement('div');
-  r.className='flag-row';
-  r.innerHTML='<input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input"><button class="small danger" onclick="this.parentElement.remove()">x</button>';
-  c.appendChild(r);
-}
-
+// ── Model Selector ──
 async function loadModels(){
   var r=await fetch('/api/v1/models'),m=await r.json(),s=document.getElementById('modelSelect'),seen={};
-  s.innerHTML='<option value="">Select model...</option>';
+  s.innerHTML='<option value="">— Select model —</option>';
   m.forEach(function(x){
     if(!seen[x.Name]){seen[x.Name]=1;
-      var tag=x.Source=='local'?'<span class="tag tag-local">local</span>':'<span class="tag tag-ollama">ollama</span>';
-      s.innerHTML+='<option value="'+x.Name+'">'+x.Name+' '+tag+'</option>';
+      s.innerHTML+='<option value="'+x.Name+'">'+x.Name+' ['+x.Source+']</option>';
     }
   });
 }
 
+// ── Instance Management ──
 async function loadInstances(){
   var r=await fetch('/api/v1/instances'),list=await r.json(),c=document.getElementById('instances');
+  document.getElementById('instanceCount').textContent='('+list.length+')';
   if(!list.length){c.innerHTML='<div class="text-sm">No running instances</div>';return;}
   c.innerHTML=list.map(function(i){
-    return '<div class="card instance"><div class="flex"><strong>'+i.Model+'</strong><span>:'+i.Port+'</span></div>'+
-      '<div class="text-sm mt-8">PID: '+i.PID+' | Status: <strong>'+i.Status+'</strong></div>'+
-      '<button class="danger small mt-8" onclick="stopInstance('+i.Port+')">Stop</button></div>';
+    var statusClass=i.Status=='running'?'':'stopped';
+    var badgeClass=i.Status=='running'?'badge-running':'badge-stopped';
+    return '<div class="instance-card '+statusClass+'">'+
+      '<div class="title">'+(i.Model.length>40?i.Model.slice(0,40)+'...':i.Model)+'</div>'+
+      '<div class="meta">Port: '+i.Port+' | PID: '+i.PID+' | <span class="badge '+badgeClass+'">'+i.Status+'</span></div>'+
+      '<div class="actions">'+
+        '<button class="small danger" onclick="stopInstance('+i.Port+')">⏹ Stop</button>'+
+        '<button class="small secondary" onclick="selectChatFor('+i.Port+',\''+i.Model.replace(/\'/g,'')+'\')">💬 Chat</button>'+
+      '</div></div>';
   }).join('');
-}
-
-async function pullModel(){
-  var ref=document.getElementById('pullInput').value.trim();
-  if(!ref){alert('Enter a model reference like hf.co/user/repo:Q4_K_M');return;}
-  var btn=document.getElementById('pullBtn'),status=document.getElementById('pullStatus');
-  btn.disabled=true;btn.textContent='Pulling...';status.textContent='Starting download...';
-  try{
-    var r=await fetch('/api/v1/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:ref})});
-    var d=await r.json();
-    if(d.error){status.textContent='Error: '+d.error;alert(d.error);}
-    else{status.textContent='Downloaded '+ref;loadModels();}
-  }catch(e){status.textContent='Error: '+e;alert(e);}
-  btn.disabled=false;btn.textContent='Pull';
 }
 
 async function launchInstance(){
@@ -1063,12 +1120,95 @@ async function launchInstance(){
   if(!r.ok){var e=await r.text();alert('Error: '+e);return;}
   var i=await r.json();
   document.getElementById('portInput').value=i.Port+1;
-  loadInstances();
+  loadInstances();refreshChatSelector();
 }
 
-async function stopInstance(p){await fetch('/api/v1/instances/stop?port='+p,{method:'POST'});loadInstances();}
+async function stopInstance(p){
+  if(!confirm('Stop instance on port '+p+'?'))return;
+  await fetch('/api/v1/instances/stop?port='+p,{method:'POST'});
+  loadInstances();refreshChatSelector();
+  if(chatPort==p){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
+}
 
-loadModels();loadInstances();setInterval(loadInstances,3000);
+function addFlag(){
+  var c=document.getElementById('flagsContainer'),r=document.createElement('div');
+  r.className='flag-row';
+  r.innerHTML='<input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input"><button class="small danger" onclick="this.parentElement.remove()">x</button>';
+  c.appendChild(r);
+}
+
+// ── Chat ──
+var chatPort=0;
+var chatHistory=[];
+
+async function refreshChatSelector(){
+  var r=await fetch('/api/v1/instances'),list=await r.json(),s=document.getElementById('chatInstanceSelect');
+  s.innerHTML='<option value="">— select running instance —</option>';
+  list.forEach(function(i){s.innerHTML+='<option value="'+i.Port+'"'+(chatPort==i.Port?' selected':'')+'>'+i.Port+' - '+(i.Model.length>35?i.Model.slice(0,35)+'...':i.Model)+'</option>';});
+  if(!list.length){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
+}
+
+function selectChatInstance(){
+  var s=document.getElementById('chatInstanceSelect');
+  chatPort=parseInt(s.value)||0;
+  if(chatPort){chatHistory=[];document.getElementById('chatMsgs').innerHTML='';document.getElementById('chatPanel').classList.add('active');document.getElementById('chatEmpty').style.display='none';addSystemMsg('Connected to instance on port '+chatPort);}
+}
+
+function selectChatFor(port,model){
+  chatPort=port;chatHistory=[];
+  document.getElementById('chatInstanceSelect').value=port;
+  document.getElementById('chatMsgs').innerHTML='';
+  document.getElementById('chatPanel').classList.add('active');
+  document.getElementById('chatEmpty').style.display='none';
+  addSystemMsg('Chatting with '+(model||'port '+port));
+}
+
+function addSystemMsg(t){var c=document.getElementById('chatMsgs');c.innerHTML+='<div class="msg system">'+t+'</div>';c.scrollTop=c.scrollHeight;}
+function addMsg(role,text){
+  var c=document.getElementById('chatMsgs');
+  var h=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  c.innerHTML+='<div class="msg '+role+'">'+h+'</div>';
+  c.scrollTop=c.scrollHeight;
+}
+
+async function sendChat(){
+  var input=document.getElementById('chatInput'),msg=input.value.trim();
+  if(!msg||!chatPort)return;
+  input.value='';addMsg('user',msg);
+  chatHistory.push({role:'user',content:msg});
+  try{
+    var r=await fetch('/api/v1/chat?port='+chatPort,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'default',messages:chatHistory.slice(-20),max_tokens:256,stream:false})
+    });
+    var d=await r.json();
+    var reply=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message.content:'(no response)';
+    chatHistory.push({role:'assistant',content:reply});
+    addMsg('assistant',reply);
+  }catch(e){addMsg('system','Error: '+e.message);}
+}
+
+// ── Pull Model ──
+async function pullModel(){
+  var ref=document.getElementById('pullInput').value.trim();
+  if(!ref){alert('Enter a model reference');return;}
+  var btn=document.getElementById('pullBtn'),status=document.getElementById('pullStatus');
+  btn.disabled=true;btn.textContent='Pulling...';status.textContent='Downloading...';
+  try{
+    var r=await fetch('/api/v1/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:ref})});
+    var d=await r.json();
+    if(d.error){status.textContent='Error: '+d.error;alert(d.error);}
+    else{status.textContent='✅ '+ref;loadModels();}
+  }catch(e){status.textContent='Error: '+e;alert(e);}
+  btn.disabled=false;btn.textContent='Pull';
+}
+
+function refreshChat(){if(chatPort)selectChatFor(chatPort,'');}
+
+// ── Init ──
+loadModels();loadInstances();refreshChatSelector();
+setInterval(function(){loadInstances();refreshChatSelector();},3000);
 </script>
 </body>
 </html>`
