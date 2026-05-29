@@ -132,3 +132,7 @@ git clone https://github.com/majidkorai/go-llama
 cd go-llama
 go build -o go-llama .
 ```
+## User interface 
+
+<img width="1403" height="709" alt="Screenshot 2026-05-29 at 11 36 21 AM" src="https://github.com/user-attachments/assets/08fd1484-17bb-473c-baf8-6a2780d1d1e1" />
+
