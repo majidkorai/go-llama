@@ -22,10 +22,10 @@ sudo cp gollama /usr/local/bin/
 gollama update
 
 # 2. Pull a model from HuggingFace
-gollama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
+gollama pull hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M
 
 # 3. Run with custom flags (blocking, shows output)
-gollama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
+gollama run gemma-4-E2B-it-Q4_K_M.gguf --flash-attn on
 
 # 4. Start the web UI manager
 gollama serve

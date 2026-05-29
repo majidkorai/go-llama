@@ -1060,7 +1060,7 @@ func main() {
 	case "pull":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: gollama pull hf.co/user/repo:quant")
-			fmt.Println("  e.g. gollama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M")
+			fmt.Println("  e.g. gollama pull hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M")
 			os.Exit(1)
 		}
 		modelRef := os.Args[2]
@@ -1182,7 +1182,7 @@ Usage:
 
 Examples:
   gollama update
-  gollama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
+  gollama pull hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M
   gollama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
   gollama serve
 
@@ -1273,7 +1273,7 @@ button.small { width:auto; padding:4px 10px; font-size:11px; border-radius:6px; 
 <div class="card-row">
   <div class="card">
     <h2>📥 Pull Model</h2>
-    <input type="text" id="pullInput" placeholder="hf.co/user/repo:Q4_K_M" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M">
+    <input type="text" id="pullInput" placeholder="hf.co/user/repo:Q4_K_M" value="hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M">
     <button onclick="pullModel()" id="pullBtn">Pull</button>
     <div id="pullStatus" class="text-sm" style="margin-top:4px"></div>
   </div>
