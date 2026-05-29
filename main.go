@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 )
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -127,9 +129,68 @@ type Manager struct {
 }
 
 func NewManager() *Manager {
-	return &Manager{
+	m := &Manager{
 		instances: make(map[int]*Instance),
 		nextPort:  8081,
+	}
+	m.recoverOrphans()
+	return m
+}
+
+// recoverOrphans scans for running llama-server processes and adopts them.
+func (m *Manager) recoverOrphans() {
+	cmd := exec.Command("pgrep", "-a", "llama-server")
+	out, err := cmd.Output()
+	if err != nil {
+		return // no orphans
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			continue
+		}
+		pidStr := parts[0]
+		pid, _ := strconv.Atoi(pidStr)
+		if pid == 0 {
+			continue
+		}
+
+		// Extract port and model from command line
+		var port int
+		var model string
+		args := parts[1:]
+		for i, a := range args {
+			if a == "--port" && i+1 < len(args) {
+				port, _ = strconv.Atoi(args[i+1])
+			}
+			if a == "-m" && i+1 < len(args) {
+				model = args[i+1]
+				// Shorten model path to just filename
+				if idx := strings.LastIndex(model, "/"); idx >= 0 {
+					model = model[idx+1:]
+				}
+			}
+		}
+		if port == 0 {
+			port = m.nextPort
+			m.nextPort++
+		}
+		if port >= m.nextPort {
+			m.nextPort = port + 1
+		}
+		if _, exists := m.instances[port]; !exists && port > 0 {
+			m.instances[port] = &Instance{
+				Port:   port,
+				Model:  model,
+				PID:    pid,
+				Status: "running",
+			}
+			log.Printf("recovered orphan instance: port=%d pid=%d model=%s", port, pid, model)
+		}
 	}
 }
 
@@ -962,6 +1023,26 @@ func main() {
 
 	case "serve":
 		ensureLlamaServer() // best-effort
+		// Periodic cleanup of orphaned/dead instances
+		go func() {
+			for {
+				time.Sleep(30 * time.Second)
+				// Check if tracked instances still have live processes
+				for _, inst := range mgr.List() {
+					proc, err := os.FindProcess(inst.PID)
+					if err != nil {
+						mgr.Stop(inst.Port)
+						continue
+					}
+					// Signal 0 tests if process exists
+					if err := proc.Signal(syscall.Signal(0)); err != nil {
+						mgr.Stop(inst.Port)
+					}
+				}
+				// Try to adopt any orphaned llama-server processes
+				mgr.recoverOrphans()
+			}
+		}()
 		port := "9080"
 		if len(os.Args) > 2 {
 			port = os.Args[2]
