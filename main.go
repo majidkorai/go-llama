@@ -32,16 +32,19 @@ type progressReader struct {
 func (pr *progressReader) Read(p []byte) (int, error) {
 	n, err := pr.reader.Read(p)
 	pr.done += int64(n)
+	elapsed := time.Since(pr.start).Seconds()
+	var speed string
+	if elapsed > 0 {
+		rate := float64(pr.done) / (1024 * 1024) / elapsed
+		speed = fmt.Sprintf("%.1f MB/s", rate)
+	}
 	if pr.total > 0 {
 		pct := float64(pr.done) * 100 / float64(pr.total)
-		elapsed := time.Since(pr.start).Seconds()
-		var speed string
-		if elapsed > 0 {
-			rate := float64(pr.done) / (1024 * 1024) / elapsed
-			speed = fmt.Sprintf("%.1f MB/s", rate)
-		}
 		fmt.Printf("\r  %s  %.1f%%  (%s / %s)  %s    ",
 			pr.name, pct, formatSize(pr.done), formatSize(pr.total), speed)
+	} else {
+		fmt.Printf("\r  %s  %s  %s       ",
+			pr.name, formatSize(pr.done), speed)
 	}
 	if err == io.EOF {
 		fmt.Println()
