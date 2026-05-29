@@ -200,7 +200,6 @@ func (m *Manager) Start(model string, port int, extraArgs []string) (*Instance, 
 		"-m", blob,
 		"--host", "0.0.0.0",
 		"--port", strconv.Itoa(port),
-		"--no-webui",
 	}
 	hasNGL, hasTS := false, false
 	for _, a := range extraArgs {
@@ -1247,6 +1246,7 @@ async function loadInstances(){
       '<div class="actions">'+
         '<button class="small danger" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
         '<button class="small secondary" onclick="selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
+        '<button class="small secondary" onclick="window.open(\'http://\'+location.hostname+\':'+i.port+'\',\'_blank\')">🌐 UI</button>'+
         '<button class="small secondary" onclick="viewLogs('+i.port+')">📋 Logs</button>'+
       '</div></div>';
   }).join('');
