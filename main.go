@@ -284,6 +284,14 @@ func (m *Manager) Stop(port int) error {
 	return nil
 }
 
+func (m *Manager) UpdateTokens(port int, tps float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if inst, ok := m.instances[port]; ok {
+		inst.TokensPerSec = tps
+	}
+}
+
 func (m *Manager) List() []*Instance {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -468,8 +476,19 @@ func startServer(mgr *Manager, port string) {
 		}
 		defer resp.Body.Close()
 
+		// Read response to extract timing
+		respBody, _ := io.ReadAll(resp.Body)
+		var timingData struct {
+			Timings *struct {
+				PredictedPerSecond float64 `json:"predicted_per_second"`
+			} `json:"timings"`
+		}
+		if json.Unmarshal(respBody, &timingData) == nil && timingData.Timings != nil {
+			mgr.UpdateTokens(port, timingData.Timings.PredictedPerSecond)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		io.Copy(w, resp.Body)
+		w.Write(respBody)
 	})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -1048,14 +1067,15 @@ h2 { color: #c4b5fd; margin: 0 0 12px 0; font-size: 15px; display: flex; align-i
 .card-row { display: flex; gap: 16px; flex-wrap: wrap; }
 .card-row .card { flex: 1; min-width: 300px; }
 .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-select, input, button { width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; font-size: 14px; margin-bottom: 8px; }
+select, input, button { width: 100%; padding: 8px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 14px; margin-bottom: 8px; outline: none; transition: border-color .2s; }
+select:focus, input:focus { border-color: #7c3aed; }
 select option { background: #1e293b; }
-button { background: #7c3aed; border: none; cursor: pointer; font-weight: 600; }
-button:hover { background: #6d28d9; }
+button { background: linear-gradient(135deg, #7c3aed, #6d28d9); border: none; cursor: pointer; font-weight: 600; transition: all .2s; }
+button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,.3); }
 button.secondary { background: #334155; }
-button.secondary:hover { background: #475569; }
-button.danger { background: #dc2626; }
-button.danger:hover { background: #b91c1c; }
+button.secondary:hover { transform: none; box-shadow: none; background: #475569; }
+button.danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+button.danger:hover { box-shadow: 0 4px 12px rgba(220,38,38,.3); }
 button.small { width: auto; padding: 4px 12px; font-size: 12px; }
 .flag-row { display: flex; gap: 8px; margin-bottom: 4px; }
 .flag-row input { flex: 1; margin-bottom: 0; }
@@ -1064,33 +1084,42 @@ button.small { width: auto; padding: 4px 12px; font-size: 12px; }
 .text-sm { font-size: 12px; color: #94a3b8; }
 .text-xs { font-size: 11px; color: #475569; }
 .flex { display: flex; justify-content: space-between; align-items: center; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
 .badge-local { background: #1e3a5f; color: #60a5fa; }
 .badge-ollama { background: #3b1f3b; color: #c084fc; }
 .badge-running { background: #064e3b; color: #34d399; }
 .badge-stopped { background: #450a0a; color: #f87171; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.instances-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
-.instance-card { border-left: 4px solid #22c55e; padding: 12px; background: #1e293b; border-radius: 0 8px 8px 0; border: 1px solid #334155; border-left-width: 4px; }
-.instance-card.stopped { border-left-color: #ef4444; opacity: 0.6; }
-.instance-card .title { font-weight: 600; font-size: 14px; word-break: break-all; }
-.instance-card .meta { font-size: 11px; color: #64748b; margin-top: 4px; }
-.instance-card .actions { margin-top: 8px; display: flex; gap: 8px; }
-.chat-area { display: flex; flex-direction: column; height: 400px; }
-.chat-msgs { flex: 1; overflow-y: auto; padding: 8px; background: #0f172a; border-radius: 4px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
-.chat-msgs .msg { margin-bottom: 8px; padding: 6px 10px; border-radius: 6px; max-width: 85%; }
-.chat-msgs .user { background: #1e3a5f; margin-left: auto; }
-.chat-msgs .assistant { background: #1e293b; border: 1px solid #334155; }
-.chat-msgs .system { background: #1a1a2e; color: #94a3b8; font-style: italic; font-size: 11px; text-align: center; }
+.instances-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.instance-card { border-left: 4px solid #22c55e; padding: 14px; background: #1e293b; border-radius: 0 10px 10px 0; border: 1px solid #334155; border-left-width: 4px; transition: all .2s; }
+.instance-card:hover { border-color: #475569; background: #1e3a5f10; }
+.instance-card.stopped { border-left-color: #ef4444; opacity: .6; }
+.instance-card .title { font-weight: 600; font-size: 14px; word-break: break-all; color: #f1f5f9; }
+.instance-card .meta { font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.instance-card .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.chat-msgs { flex: 1; overflow-y: auto; padding: 12px; background: #0f172a; border-radius: 8px; margin-bottom: 8px; font-size: 13px; line-height: 1.6; }
+.chat-msgs .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.5; }
+.chat-msgs .user { background: #1e3a5f; margin-left: auto; border-bottom-right-radius: 4px; }
+.chat-msgs .assistant { background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
+.chat-msgs .system { background: transparent; color: #64748b; font-style: italic; font-size: 11px; text-align: center; max-width: 100%; }
 .chat-input-row { display: flex; gap: 8px; }
-.chat-input-row input { flex: 1; margin-bottom: 0; }
-.chat-input-row button { width: auto; padding: 8px 20px; }
+.chat-input-row input { flex: 1; margin-bottom: 0; border-radius: 8px; }
+.chat-input-row button { width: auto; padding: 8px 20px; border-radius: 8px; }
 .empty-state { text-align: center; padding: 40px 20px; color: #475569; }
 .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
 .chat-panel { display: none; }
 .chat-panel.active { display: flex; flex-direction: column; height: 450px; }
 .instance-selector { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
 .instance-selector select { margin-bottom: 0; }
+.model-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:6px; transition:background .2s; }
+.model-row:hover { background: #0f172a; }
+.model-row .name { font-size:13px; color:#e2e8f0; }
+.model-row .info { font-size:11px; color:#64748b; margin-top:2px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+.loading { animation:pulse 1.5s infinite; }
+@media(max-width:768px){
+  .card-row { flex-direction:column; }
+  .instances-grid { grid-template-columns:1fr; }
+}
 </style>
 </head>
 <body>
@@ -1176,10 +1205,13 @@ async function loadModelList(){
   document.getElementById('modelCount').textContent='('+m.length+')';
   if(!m.length){c.innerHTML='<div class="text-sm">No models downloaded</div>';return;}
   c.innerHTML=m.map(function(x){
-    var name=x.name||'(unnamed)',size=x.size?fmtSize(x.size):'?';
+    var name=x.name||'(unnamed)',size=x.size?fmtSize(x.size):'?',quant='';
+    // Extract quantization from filename
+    var qm=name.match(/[Qq][0-9]_[A-Z0-9_]+|[Bb][Ff]16|[Ff][Pp]16|[Ii][Qq][0-9]_[A-Z0-9_]+/);
+    if(qm)quant=' | <span class="badge badge-local">'+qm[0].toUpperCase()+'</span>';
     count++;
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1e293b">'+
-      '<div><span style="font-size:13px">'+(name.length>50?name.slice(0,50)+'...':name)+'</span><br><span class="text-xs">'+size+' ['+(x.source||'?')+']</span></div>'+
+    return '<div class="model-row">'+
+      '<div><div class="name">'+(name.length>50?name.slice(0,50)+'...':name)+'</div><div class="info">'+size+quant+' ['+(x.source||'?')+']</div></div>'+
       '<button class="small danger" onclick="deleteModel(\''+name.replace(/\'/g,'')+'\')" style="width:auto;padding:2px 10px">🗑</button></div>';
   }).join('');
 }
@@ -1208,9 +1240,10 @@ async function loadInstances(){
     var sc=i.status=='running'?'':'stopped';
     var bc=i.status=='running'?'badge-running':'badge-stopped';
     var mn=i.model||'?';
+    var tps=i.tokens_per_sec?'⚡ '+i.tokens_per_sec.toFixed(1)+' t/s':'';
     return '<div class="instance-card '+sc+'">'+
       '<div class="title">'+(mn.length>40?mn.slice(0,40)+'...':mn)+'</div>'+
-      '<div class="meta">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span></div>'+
+      '<div class="meta">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span>'+tps+'</div>'+
       '<div class="actions">'+
         '<button class="small danger" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
         '<button class="small secondary" onclick="selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
