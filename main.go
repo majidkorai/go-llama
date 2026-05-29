@@ -1138,213 +1138,149 @@ const uiPage = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>go-llama</title>
 <style>
-:root { --bg: #0b1121; --surface: #151d32; --border: #1e2a45; --text: #e2e8f0; --muted: #64748b; --accent: #7c3aed; --accent-hover: #6d28d9; --green: #22c55e; --red: #ef4444; }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); }
-.header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
-.header h1 { font-size:18px; font-weight:700; color:#a78bfa; letter-spacing:-.3px; }
-.header h1 span { color:var(--muted); font-weight:400; font-size:12px; margin-left:8px; }
-.header .nav { display:flex; gap:4px; }
-.header .nav a { padding:6px 16px; border-radius:6px; font-size:13px; font-weight:500; color:var(--muted); text-decoration:none; cursor:pointer; transition:all .2s; }
-.header .nav a:hover { color:var(--text); background:rgba(255,255,255,.05); }
-.header .nav a.active { color:var(--text); background:rgba(124,58,237,.15); }
-.main { display:flex; height:calc(100vh - 57px); }
-.tab-content { display:none; flex:1; padding:24px; overflow-y:auto; }
-.tab-content.active { display:block; }
-.card { background:var(--surface); border-radius:10px; border:1px solid var(--border); padding:20px; margin-bottom:16px; }
-.card-title { font-size:14px; font-weight:600; color:#c4b5fd; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
-.row { display:flex; gap:16px; flex-wrap:wrap; }
-.row > * { flex:1; min-width:280px; }
-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; display:block; }
-select, input, textarea { width:100%; padding:8px 12px; background:#0b1121; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; transition:border-color .2s; margin-bottom:8px; }
-select:focus, input:focus { border-color:var(--accent); }
-select option { background:var(--surface); }
-button { padding:8px 16px; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
-button.primary { background:var(--accent); color:#fff; }
-button.primary:hover { background:var(--accent-hover); }
-button.secondary { background:rgba(255,255,255,.08); color:var(--text); }
-button.secondary:hover { background:rgba(255,255,255,.12); }
-button.danger { background:var(--red); color:#fff; }
-button.danger:hover { opacity:.85; }
-button.sm { padding:4px 10px; font-size:11px; }
-.inline-flex { display:flex; gap:8px; align-items:center; }
-.inline-flex button { white-space:nowrap; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; }
-.inst-card { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--green); border-radius:8px; padding:14px; transition:all .15s; }
-.inst-card:hover { border-color:#475569; }
-.inst-card.stopped { border-left-color:var(--red); opacity:.6; }
-.inst-card .top { font-weight:600; font-size:13px; word-break:break-all; }
-.inst-card .mid { font-size:11px; color:var(--muted); margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-.inst-card .btns { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
-.badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#090d1a; color:#e2e8f0; padding:20px; max-width:1400px; margin:0 auto; }
+h1 { color:#a78bfa; margin-bottom:4px; display:inline-block; font-size:22px; }
+.subtitle { color:#64748b; font-size:13px; margin-bottom:20px; }
+h2 { color:#c4b5fd; margin:0 0 12px 0; font-size:14px; display:flex; align-items:center; gap:8px; }
+.card { background:#111827; border-radius:10px; padding:16px; margin-bottom:16px; border:1px solid #1f2937; }
+.card-row { display:flex; gap:16px; flex-wrap:wrap; }
+.card-row .card { flex:1; min-width:300px; }
+.label { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+select, input, button { width:100%; padding:8px 12px; background:#090d1a; border:1px solid #1f2937; border-radius:8px; color:#e2e8f0; font-size:13px; margin-bottom:8px; outline:none; transition:border-color .2s; }
+select:focus, input:focus { border-color:#7c3aed; }
+select option { background:#111827; }
+button { background:linear-gradient(135deg,#7c3aed,#6d28d9); border:none; cursor:pointer; font-weight:600; font-size:13px; transition:all .2s; padding:8px 16px; border-radius:8px; color:#fff; }
+button:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(124,58,237,.3); }
+button.secondary { background:#1f2937; color:#e2e8f0; box-shadow:none; }
+button.secondary:hover { transform:none; background:#374151; }
+button.danger { background:linear-gradient(135deg,#dc2626,#b91c1c); }
+button.danger:hover { box-shadow:0 4px 14px rgba(220,38,38,.3); }
+button.small { width:auto; padding:4px 10px; font-size:11px; border-radius:6px; }
+.flag-row { display:flex; gap:8px; margin-bottom:4px; }
+.flag-row input { flex:1; margin-bottom:0; }
+.flag-row button { width:auto; }
+.mt-8 { margin-top:8px; }
+.text-sm { font-size:12px; color:#64748b; }
+.text-xs { font-size:11px; color:#475569; }
+.flex { display:flex; justify-content:space-between; align-items:center; }
+.badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
 .badge-green { background:#064e3b; color:#34d399; }
 .badge-red { background:#450a0a; color:#f87171; }
 .badge-blue { background:#1e3a5f; color:#60a5fa; }
 .badge-purple { background:#3b1f3b; color:#c084fc; }
-.model-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:6px; transition:background .15s; }
-.model-row:hover { background:rgba(255,255,255,.03); }
-.model-row .name { font-size:13px; color:var(--text); }
-.model-row .info { font-size:11px; color:var(--muted); margin-top:2px; }
-.chat-box { display:flex; flex-direction:column; height:calc(100vh - 200px); }
-.chat-msgs { flex:1; overflow-y:auto; padding:12px; background:#0b1121; border-radius:8px; margin-bottom:8px; font-size:13px; line-height:1.6; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+.inst-card { border-left:4px solid #22c55e; padding:14px; background:#111827; border-radius:0 10px 10px 0; border:1px solid #1f2937; border-left-width:4px; transition:all .2s; }
+.inst-card:hover { border-color:#374151; }
+.inst-card.stopped { border-left-color:#ef4444; opacity:.6; }
+.inst-card .title { font-weight:600; font-size:13px; word-break:break-all; }
+.inst-card .meta { font-size:11px; color:#64748b; margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.inst-card .actions { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
+.chat-msgs { flex:1; overflow-y:auto; padding:12px; background:#090d1a; border-radius:8px; margin-bottom:8px; font-size:13px; line-height:1.6; }
 .chat-msgs .msg { margin-bottom:10px; padding:8px 12px; border-radius:10px; max-width:85%; line-height:1.5; }
-.chat-msgs .msg.user { background:#1e3a5f; margin-left:auto; border-bottom-right-radius:4px; }
-.chat-msgs .msg.assistant { background:var(--surface); border:1px solid var(--border); border-bottom-left-radius:4px; }
-.chat-msgs .msg.system { background:transparent; color:var(--muted); font-style:italic; font-size:11px; text-align:center; max-width:100%; }
-.chat-bottom { display:flex; gap:8px; }
-.chat-bottom input { flex:1; margin-bottom:0; }
-.chat-bottom button { padding:8px 20px; }
-.empty { text-align:center; padding:60px 20px; color:var(--muted); }
-.empty .icon { font-size:36px; margin-bottom:10px; }
-.gap-8 { gap:8px; }
+.chat-msgs .user { background:#1e3a5f; margin-left:auto; border-bottom-right-radius:4px; }
+.chat-msgs .assistant { background:#111827; border:1px solid #1f2937; border-bottom-left-radius:4px; }
+.chat-msgs .system { background:transparent; color:#64748b; font-style:italic; font-size:11px; text-align:center; max-width:100%; }
+.chat-input-row { display:flex; gap:8px; }
+.chat-input-row input { flex:1; margin-bottom:0; }
+.chat-input-row button { width:auto; padding:8px 20px; }
+.empty-state { text-align:center; padding:40px 20px; color:#475569; }
+.empty-state .icon { font-size:36px; margin-bottom:10px; }
+.chat-panel { display:none; }
+.chat-panel.active { display:flex; flex-direction:column; height:400px; }
+.instance-selector { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
+.instance-selector select { margin-bottom:0; }
+.model-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:6px; transition:background .2s; }
+.model-row:hover { background:#090d1a; }
+.model-row .name { font-size:13px; color:#e2e8f0; }
+.model-row .info { font-size:11px; color:#64748b; margin-top:2px; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 .loading { animation:pulse 1.5s infinite; }
-@media(max-width:768px){
-  .main { flex-direction:column; }
-  .grid { grid-template-columns:1fr; }
-  .header .nav a { padding:6px 10px; font-size:12px; }
-}
+@media(max-width:768px){.card-row{flex-direction:column}.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div class="flex"><h1>go-llama</h1> <span class="subtitle" style="margin-bottom:0;margin-left:8px">v0.1.0</span></div>
+<div class="subtitle">llama.cpp instance manager</div>
 
-<div class="header">
-  <h1>⚡ go-llama <span>v0.1.0</span></h1>
-  <div class="nav">
-    <a onclick="switchTab('instances')" id="tab-instances-btn" class="active">Instances</a>
-    <a onclick="switchTab('models')" id="tab-models-btn">Models</a>
-    <a onclick="switchTab('chat')" id="tab-chat-btn">Chat</a>
-  </div>
-</div>
-
-<div class="main">
-
-<!-- ── Instances Tab ── -->
-<div id="tab-instances" class="tab-content active">
-  <div class="row" style="margin-bottom:16px">
-    <div class="card">
-      <div class="card-title">🚀 New Instance</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <div style="flex:2;min-width:180px">
-          <label>Model</label>
-          <select id="modelSelect"><option value="">Loading...</option></select>
-        </div>
-        <div style="flex:1;min-width:80px">
-          <label>Port</label>
-          <input type="number" id="portInput" value="8081" min="8081" max="8099">
-        </div>
-      </div>
-      <label style="margin-top:8px">Flags</label>
-      <div id="flagsContainer">
-        <div style="display:flex;gap:8px;margin-bottom:4px">
-          <input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input" style="flex:1;margin-bottom:0">
-          <button class="danger sm" onclick="this.parentElement.remove()">x</button>
-        </div>
-      </div>
-      <div class="inline-flex" style="margin-top:8px">
-        <button class="secondary sm" onclick="addFlag()">+ Flag</button>
-        <button class="primary" onclick="launchInstance()">Launch</button>
-      </div>
-    </div>
-  </div>
+<div class="card-row">
   <div class="card">
-    <div class="card-title">🟢 Running <span id="instanceCount" style="font-weight:400;font-size:12px;color:var(--muted)"></span></div>
-    <div id="instances" class="grid"><div class="empty"><div class="icon">⏳</div><div>No running instances</div></div></div>
+    <h2>📥 Pull Model</h2>
+    <input type="text" id="pullInput" placeholder="hf.co/user/repo:Q4_K_M" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M">
+    <button onclick="pullModel()" id="pullBtn">Pull</button>
+    <div id="pullStatus" class="text-sm" style="margin-top:4px"></div>
   </div>
-</div>
 
-<!-- ── Models Tab ── -->
-<div id="tab-models" class="tab-content">
-  <div class="row" style="margin-bottom:16px">
-    <div class="card">
-      <div class="card-title">📥 Pull from HuggingFace</div>
-      <div class="inline-flex">
-        <input type="text" id="pullInput" placeholder="hf.co/user/repo:quant" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M" style="flex:1;margin-bottom:0">
-        <button class="primary" onclick="pullModel()" id="pullBtn">Pull</button>
-      </div>
-      <div id="pullStatus" class="info" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
-    </div>
-  </div>
   <div class="card">
-    <div class="card-title">📦 Local Models <span id="modelCount" style="font-weight:400;font-size:12px;color:var(--muted)"></span></div>
-    <div id="modelList"><div class="empty"><div class="icon">📦</div><div>Pull a model to get started</div></div></div>
+    <h2>🚀 New Instance</h2>
+    <div class="label">Model</div>
+    <select id="modelSelect"><option value="">Loading models...</option></select>
+    <div class="label">Port</div>
+    <input type="number" id="portInput" value="8081" min="8081" max="8099">
+    <div class="label">Flags</div>
+    <div id="flagsContainer">
+      <div class="flag-row">
+        <input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input">
+        <button class="small danger" onclick="this.parentElement.remove()">x</button>
+      </div>
+    </div>
+    <button class="secondary small" onclick="addFlag()">+ Add Flag</button>
+    <button class="mt-8" onclick="launchInstance()">Launch</button>
   </div>
 </div>
 
-<!-- ── Chat Tab ── -->
-<div id="tab-chat" class="tab-content">
-  <div class="card" style="flex:1;display:flex;flex-direction:column">
-    <div class="card-title">💬 Chat with Instance</div>
-    <div class="inline-flex" style="margin-bottom:12px">
-      <select id="chatInstanceSelect" onchange="selectChatInstance()" style="flex:1;margin-bottom:0"><option value="">— select a running instance —</option></select>
-      <button class="secondary sm" onclick="refreshChat()">↻</button>
+<div class="card-row">
+  <div class="card" style="flex:1">
+    <h2>📦 Models <span id="modelCount" class="text-sm" style="font-weight:400"></span></h2>
+    <div id="modelList"><div class="text-sm">Loading...</div></div>
+  </div>
+
+  <div class="card" style="flex:1">
+    <h2>🟢 Running <span id="instanceCount" class="text-sm" style="font-weight:400"></span></h2>
+    <div id="instances" class="grid"><div class="text-sm">Loading...</div></div>
+  </div>
+
+  <div class="card" style="flex:1">
+    <h2>💬 Chat</h2>
+    <div class="instance-selector">
+      <select id="chatInstanceSelect" onchange="selectChatInstance()"><option value="">— select running instance —</option></select>
+      <button class="small secondary" onclick="refreshChat()">↻</button>
     </div>
-    <div id="chatPanel" class="chat-box" style="display:none">
+    <div id="chatPanel" class="chat-panel">
       <div id="chatMsgs" class="chat-msgs"></div>
-      <div class="chat-bottom">
+      <div class="chat-input-row">
         <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key=='Enter')sendChat()">
-        <button class="primary" onclick="sendChat()">Send</button>
+        <button onclick="sendChat()">Send</button>
       </div>
     </div>
-    <div id="chatEmpty" class="empty" style="flex:1">
+    <div id="chatEmpty" class="empty-state">
       <div class="icon">💬</div>
-      <div>Launch an instance and select it above to start chatting</div>
+      <div>Launch an instance to start chatting</div>
     </div>
-  </div>
-</div>
-
-</div>
-
-<!-- ── Log Modal ── -->
-<div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:200">
-  <div style="background:var(--surface);margin:5% auto;padding:20px;width:80%;max-width:700px;max-height:70vh;border-radius:10px;overflow:auto;border:1px solid var(--border)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <strong style="font-size:14px;color:#c4b5fd">📋 Instance Logs</strong>
-      <button class="danger sm" onclick="closeLogs()">Close</button>
-    </div>
-    <pre id="logContent" style="background:#0b1121;padding:12px;border-radius:6px;font-size:11px;line-height:1.4;overflow:auto;max-height:55vh;white-space:pre-wrap;color:#94a3b8"></pre>
   </div>
 </div>
 
 <script>
-// ── Tab Switching ──
-function switchTab(name){
-  document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.nav a').forEach(function(a){a.classList.remove('active');});
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('tab-'+name+'-btn').classList.add('active');
-  if(name=='chat'){refreshChatSelector();}
-}
-
 // ── Model Selector ──
 async function loadModels(){
   var r=await fetch('/api/v1/models'),m=await r.json(),s=document.getElementById('modelSelect'),seen={};
   s.innerHTML='<option value="">— Select model —</option>';
-  if(!m||!m.length){s.innerHTML+='<option value="" disabled>No models found. Use "go-llama pull".</option>';return;}
+  if(!m||!m.length){s.innerHTML+='<option value="" disabled>No models found. Use go-llama pull.</option>';return;}
   m.forEach(function(x){
     var n=x.name||'(unnamed)',src=x.source||'unknown';
-    if(!seen[n]){seen[n]=1;
-      s.innerHTML+='<option value="'+n+'">'+n+' ['+src+']</option>';
-    }
+    if(!seen[n]){seen[n]=1;s.innerHTML+='<option value="'+n+'">'+n+' ['+src+']</option>';}
   });
-  console.log('Models loaded:',m.length);
   loadModelList();
 }
 
-// ── Model List (with delete) ──
 async function loadModelList(){
-  var r=await fetch('/api/v1/models'),m=await r.json(),c=document.getElementById('modelList'),count=0;
+  var r=await fetch('/api/v1/models'),m=await r.json(),c=document.getElementById('modelList');
   document.getElementById('modelCount').textContent='('+m.length+')';
-  if(!m.length){c.innerHTML='<div class="empty"><div class="icon">📦</div><div>No models downloaded</div></div>';return;}
+  if(!m.length){c.innerHTML='<div class="text-sm">No models downloaded</div>';return;}
   c.innerHTML=m.map(function(x){
-    var name=x.name||'(unnamed)',size=x.size?fmtSize(x.size):'?',quant='';
-    // Extract quantization from filename
-    var qm=name.match(/[Qq][0-9]_[A-Z0-9_]+|[Bb][Ff]16|[Ff][Pp]16|[Ii][Qq][0-9]_[A-Z0-9_]+/);
-    if(qm)quant=' | <span class="badge badge-local">'+qm[0].toUpperCase()+'</span>';
-    count++;
-    return '<div class="model-row">'+
-      '<div><div class="name">'+(name.length>50?name.slice(0,50)+'...':name)+'</div><div class="info">'+size+quant+' ['+(x.source||'?')+']</div></div>'+
-      '<button class="small danger" onclick="deleteModel(\''+name.replace(/\'/g,'')+'\')" style="width:auto;padding:2px 10px">🗑</button></div>';
+    var name=x.name||'?',size=x.size?fmtSize(x.size):'?',q=x.name.match(/[Qq][0-9]_[A-Z0-9_]+|[Bb][Ff]16|[Ff][Pp]16/);
+    return '<div class="model-row"><div><div class="name">'+(name.length>50?name.slice(0,50)+'...':name)+'</div><div class="info">'+size+(q?' | <span class="badge badge-blue">'+q[0].toUpperCase()+'</span>':'')+' ['+(x.source||'?')+']</div></div>'+
+      '<button class="small danger" onclick="deleteModel(\''+name.replace(/\'/g,'')+'\')">🗑</button></div>';
   }).join('');
 }
 
@@ -1363,33 +1299,28 @@ async function deleteModel(name){
   loadModels();loadModelList();
 }
 
-// ── Instance Management ──
+// ── Instances ──
 async function loadInstances(){
   var r=await fetch('/api/v1/instances'),list=await r.json(),c=document.getElementById('instances');
   document.getElementById('instanceCount').textContent='('+list.length+')';
-  if(!list.length){c.innerHTML='<div class="empty"><div class="icon">⏳</div><div>No running instances. Launch one from the Instances tab.</div></div>';return;}
+  if(!list.length){c.innerHTML='<div class="text-sm">No running instances</div>';return;}
   c.innerHTML=list.map(function(i){
     var sc=i.status=='running'?'':' stopped';
     var bc=i.status=='running'?'badge-green':'badge-red';
     var mn=i.model||'?';
     var tps=i.tokens_per_sec?'<span style="color:#22c55e">⚡ '+i.tokens_per_sec.toFixed(1)+' t/s</span>':'';
-    return '<div class="inst-card'+sc+'">'+
-      '<div class="top">'+(mn.length>40?mn.slice(0,40)+'...':mn)+'</div>'+
-      '<div class="mid">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span> '+tps+'</div>'+
-      '<div class="btns">'+
-        '<button class="danger sm" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
-        '<button class="secondary sm" onclick="switchTab(\'chat\');selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
-        '<button class="secondary sm" onclick="window.open(\'http://\'+location.hostname+\':'+i.port+'\',\'_blank\')">🌐 UI</button>'+
-        '<button class="secondary sm" onclick="viewLogs('+i.port+')">📋 Logs</button>'+
-      '</div></div>';
+    return '<div class="inst-card'+sc+'"><div class="title">'+(mn.length>40?mn.slice(0,40)+'...':mn)+'</div>'+
+      '<div class="meta">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span> '+tps+'</div>'+
+      '<div class="actions"><button class="small danger" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
+      '<button class="small secondary" onclick="selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
+      '<button class="small secondary" onclick="window.open(\'http://\'+location.hostname+\':'+i.port+'\',\'_blank\')">🌐 UI</button>'+
+      '<button class="small secondary" onclick="viewLogs('+i.port+')">📋 Logs</button></div></div>';
   }).join('');
 }
 
 async function launchInstance(){
   var m=document.getElementById('modelSelect').value,p=parseInt(document.getElementById('portInput').value),f=[];
-  document.querySelectorAll('.flag-input').forEach(function(el){
-    (el.value.trim().split(/\s+/)).forEach(function(v){if(v)f.push(v);});
-  });
+  document.querySelectorAll('.flag-input').forEach(function(el){(el.value.trim().split(/\s+/)).forEach(function(v){if(v)f.push(v);});});
   if(!m){alert('Select a model');return;}
   var r=await fetch('/api/v1/instances',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,port:p,flags:f})});
   if(!r.ok){var e=await r.text();alert('Error: '+e);return;}
@@ -1402,7 +1333,7 @@ async function stopInstance(p){
   if(!confirm('Stop instance on port '+p+'?'))return;
   await fetch('/api/v1/instances/stop?port='+p,{method:'POST'});
   loadInstances();refreshChatSelector();
-  if(chatPort==p){document.getElementById('chatPanel').style.display='none';document.getElementById('chatEmpty').style.display='block';}
+  if(chatPort==p){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
 }
 
 function addFlag(){
@@ -1413,108 +1344,83 @@ function addFlag(){
 }
 
 // ── Chat ──
-var chatPort=0;
-var chatHistory=[];
+var chatPort=0,chatHistory=[];
 
 async function refreshChatSelector(){
   var r=await fetch('/api/v1/instances'),list=await r.json(),s=document.getElementById('chatInstanceSelect');
   s.innerHTML='<option value="">— select running instance —</option>';
-  list.forEach(function(i){
-    var mn=i.model||'?';
-    s.innerHTML+='<option value="'+i.port+'"'+(chatPort==i.port?' selected':'')+'>'+i.port+' - '+(mn.length>35?mn.slice(0,35)+'...':mn)+'</option>';
-  });
-  if(!list.length){document.getElementById('chatPanel').style.display='none';document.getElementById('chatEmpty').style.display='block';}
+  list.forEach(function(i){var mn=i.model||'?';s.innerHTML+='<option value="'+i.port+'"'+(chatPort==i.port?' selected':'')+'>'+i.port+' - '+(mn.length>35?mn.slice(0,35)+'...':mn)+'</option>';});
+  if(!list.length){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
 }
 
 function selectChatInstance(){
-  var s=document.getElementById('chatInstanceSelect');
-  chatPort=parseInt(s.value)||0;
-  if(chatPort){chatHistory=[];document.getElementById('chatMsgs').innerHTML='';document.getElementById('chatPanel').style.display='flex';document.getElementById('chatEmpty').style.display='none';addSystemMsg('Connected to instance on port '+chatPort);}
+  var s=document.getElementById('chatInstanceSelect');chatPort=parseInt(s.value)||0;
+  if(chatPort){chatHistory=[];document.getElementById('chatMsgs').innerHTML='';document.getElementById('chatPanel').classList.add('active');document.getElementById('chatEmpty').style.display='none';addSystemMsg('Connected');}
 }
 
 function selectChatFor(port,model){
-  switchTab('chat');
   chatPort=port;chatHistory=[];
   document.getElementById('chatInstanceSelect').value=port;
   document.getElementById('chatMsgs').innerHTML='';
-  document.getElementById('chatPanel').style.display='flex';
+  document.getElementById('chatPanel').classList.add('active');
   document.getElementById('chatEmpty').style.display='none';
   addSystemMsg('Chatting with '+(model||'port '+port));
 }
 
 function addSystemMsg(t){var c=document.getElementById('chatMsgs');c.innerHTML+='<div class="msg system">'+t+'</div>';c.scrollTop=c.scrollHeight;}
-function addMsg(role,text,reasoning){
-  var c=document.getElementById('chatMsgs');
-  var h=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  var html='<div class="msg '+role+'">';
-  if(reasoning){
-    var r=reasoning.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html+='<div style="color:#94a3b8;font-style:italic;font-size:12px;border-left:2px solid #334155;padding-left:8px;margin-bottom:4px">'+r+'</div>';
-  }
-  html+=h+'</div>';
-  c.innerHTML+=html;
-  c.scrollTop=c.scrollHeight;
+function addMsg(r,t,re){
+  var c=document.getElementById('chatMsgs'),h=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var html='<div class="msg '+r+'">';
+  if(re){var r2=re.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');html+='<div style="color:#64748b;font-style:italic;font-size:12px;border-left:2px solid #1f2937;padding-left:8px;margin-bottom:4px">'+r2+'</div>';}
+  c.innerHTML+=html+h+'</div>';c.scrollTop=c.scrollHeight;
 }
 
 async function sendChat(){
   var input=document.getElementById('chatInput'),msg=input.value.trim();
   if(!msg||!chatPort)return;
-  input.value='';addMsg('user',msg);
-  chatHistory.push({role:'user',content:msg});
+  input.value='';addMsg('user',msg);chatHistory.push({role:'user',content:msg});
   try{
-    var r=await fetch('/api/v1/chat?port='+chatPort,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'default',messages:chatHistory.slice(-20),max_tokens:256,stream:false})
-    });
-    var d=await r.json();
-    var msg=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message:{};
-    var reply=msg.content||'(no response)';
-    var reasoning=msg.reasoning_content||'';
-    chatHistory.push({role:'assistant',content:reply});
-    addMsg('assistant',reply,reasoning);
+    var r=await fetch('/api/v1/chat?port='+chatPort,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'default',messages:chatHistory.slice(-20),max_tokens:256,stream:false})});
+    var d=await r.json(),msg=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message:{},reply=msg.content||'(no response)',reasoning=msg.reasoning_content||'';
+    chatHistory.push({role:'assistant',content:reply});addMsg('assistant',reply,reasoning);
   }catch(e){addMsg('system','Error: '+e.message);}
 }
 
-// ── Log Viewer ──
+// ── Logs ──
 async function viewLogs(port){
   var r=await fetch('/api/v1/instances/logs?port='+port),d=await r.json();
-  if(d.error){alert('No logs: '+d.error);return;}
-  var txt=d.lines&&d.lines.length?d.lines.slice(-50).join('\\n'):'(empty)';
-  document.getElementById('logContent').textContent=txt;
+  if(d.error){alert('No logs');return;}
+  document.getElementById('logContent').textContent=d.lines&&d.lines.length?d.lines.slice(-50).join('\\n'):'(empty)';
   document.getElementById('logModal').style.display='block';
 }
 function closeLogs(){document.getElementById('logModal').style.display='none';}
 
-// ── Pull Model ──
 async function pullModel(){
   var ref=document.getElementById('pullInput').value.trim();
   if(!ref){alert('Enter a model reference');return;}
-  var btn=document.getElementById('pullBtn'),status=document.getElementById('pullStatus');
-  btn.disabled=true;btn.textContent='Pulling...';status.textContent='Downloading...';
+  var btn=document.getElementById('pullBtn'),st=document.getElementById('pullStatus');
+  btn.disabled=true;btn.textContent='Pulling...';st.textContent='Downloading...';
   try{
     var r=await fetch('/api/v1/models/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:ref})});
     var d=await r.json();
-    if(d.error){status.textContent='Error: '+d.error;alert(d.error);}
-    else{status.textContent='✅ '+ref;loadModels();}
-  }catch(e){status.textContent='Error: '+e;alert(e);}
+    if(d.error){st.textContent='Error: '+d.error;alert(d.error);}else{st.textContent='✅ '+ref;loadModels();}
+  }catch(e){st.textContent='Error: '+e;alert(e);}
   btn.disabled=false;btn.textContent='Pull';
 }
 
 function refreshChat(){if(chatPort)selectChatFor(chatPort,'');}
-</script>
 
-<div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000">
-  <div style="background:#1e293b;margin:5% auto;padding:20px;width:80%;max-width:800px;max-height:70vh;border-radius:8px;overflow:auto;border:1px solid #334155">
-    <div class="flex"><h2>📋 Instance Logs</h2><button class="small danger" onclick="closeLogs()">Close</button></div>
-    <pre id="logContent" style="background:#0f172a;padding:12px;border-radius:4px;margin-top:12px;font-size:11px;line-height:1.4;overflow:auto;max-height:55vh;white-space:pre-wrap"></pre>
-  </div>
-</div>
-<script>
 // ── Init ──
 loadModels();loadInstances();refreshChatSelector();
 setInterval(function(){loadInstances();refreshChatSelector();},3000);
 setInterval(function(){loadModelList();},10000);
 </script>
+
+<div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:1000">
+  <div style="background:#111827;margin:5% auto;padding:20px;width:80%;max-width:700px;max-height:70vh;border-radius:10px;overflow:auto;border:1px solid #1f2937">
+    <div class="flex"><h2 style="margin-bottom:0">📋 Logs</h2><button class="small danger" onclick="closeLogs()">Close</button></div>
+    <pre id="logContent" style="background:#090d1a;padding:12px;border-radius:6px;margin-top:12px;font-size:11px;line-height:1.4;overflow:auto;max-height:55vh;white-space:pre-wrap;color:#94a3b8"></pre>
+  </div>
+</div>
 </body>
 </html>`
