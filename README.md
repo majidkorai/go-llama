@@ -5,11 +5,7 @@ Spin up any model on any port with any llama-server flag.
 
 ## Install
 
-```bash
-curl -fsSL https://gollama.dev/install.sh | sh
-```
-
-Or build from source:
+Build from source:
 
 ```bash
 git clone https://github.com/majidkorai/gollama
