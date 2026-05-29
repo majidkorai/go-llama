@@ -1,7 +1,8 @@
-# gollama
+# gollama 🦙
 
-A lightweight llama.cpp instance manager with full parameter control.
-Spin up any model on any port with any llama-server flag.
+**Spin up GGUF models in seconds** — a single Go binary that downloads, manages, and runs llama.cpp instances with a web UI, REST API, and full flag control.
+
+Pull any model from HuggingFace, launch it on any port with any llama-server flag, chat with it — all from your browser or CLI. No dependencies, no Docker, no Python.
 
 ## Install
 
