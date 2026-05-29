@@ -21,6 +21,34 @@ import (
 
 // ── Types ──────────────────────────────────────────────────────────────
 
+type progressReader struct {
+	reader io.Reader
+	total  int64
+	done   int64
+	start  time.Time
+	name   string
+}
+
+func (pr *progressReader) Read(p []byte) (int, error) {
+	n, err := pr.reader.Read(p)
+	pr.done += int64(n)
+	if pr.total > 0 {
+		pct := float64(pr.done) * 100 / float64(pr.total)
+		elapsed := time.Since(pr.start).Seconds()
+		var speed string
+		if elapsed > 0 {
+			rate := float64(pr.done) / (1024 * 1024) / elapsed
+			speed = fmt.Sprintf("%.1f MB/s", rate)
+		}
+		fmt.Printf("\r  %s  %.1f%%  (%s / %s)  %s    ",
+			pr.name, pct, formatSize(pr.done), formatSize(pr.total), speed)
+	}
+	if err == io.EOF {
+		fmt.Println()
+	}
+	return n, err
+}
+
 type Instance struct {
 	Port         int      `json:"port"`
 	Model        string   `json:"model"`
@@ -648,7 +676,7 @@ func pullModel(ref string) error {
 	dest := filepath.Join(modelsDir(), filepath.Base(targetFile))
 
 	downloadURL := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", modelID, targetFile)
-	fmt.Printf("Downloading %s (%s)...\n", targetFile, formatSize(targetSize))
+	fmt.Printf("Downloading %s (%s)\n", targetFile, formatSize(targetSize))
 
 	out, err := os.Create(dest)
 	if err != nil {
@@ -667,7 +695,13 @@ func pullModel(ref string) error {
 		return fmt.Errorf("download failed (HTTP %d)", dlResp.StatusCode)
 	}
 
-	written, err := io.Copy(out, dlResp.Body)
+	pr := &progressReader{
+		reader: dlResp.Body,
+		total:  targetSize,
+		name:   "▸",
+		start:  time.Now(),
+	}
+	written, err := io.Copy(out, pr)
 	if err != nil {
 		os.Remove(dest)
 		return fmt.Errorf("downloading: %w", err)
@@ -888,18 +922,25 @@ Then run 'gollama update' again.`)
 	tmpFile := filepath.Join(binDir(), "llama-server.tar.gz")
 	defer os.Remove(tmpFile)
 
-	fmt.Printf("Downloading %s ...\n", url)
+	fmt.Printf("Downloading ...\n")
 	dlResp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("downloading: %w", err)
 	}
 	defer dlResp.Body.Close()
 
+	pr := &progressReader{
+		reader: dlResp.Body,
+		total:  dlResp.ContentLength,
+		name:   "▸",
+		start:  time.Now(),
+	}
+
 	out, err := os.Create(tmpFile)
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(out, dlResp.Body)
+	_, err = io.Copy(out, pr)
 	out.Close()
 	if err != nil {
 		return fmt.Errorf("downloading: %w", err)
