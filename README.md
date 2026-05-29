@@ -11,6 +11,7 @@ Build from source:
 git clone https://github.com/majidkorai/gollama
 cd gollama
 go build -o gollama .
+sudo cp gollama /usr/local/bin/
 ```
 
 ## Quick Start
