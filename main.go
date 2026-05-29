@@ -1138,132 +1138,184 @@ const uiPage = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>go-llama</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 1400px; margin: 0 auto; }
-h1 { color: #a78bfa; margin-bottom: 4px; display: inline-block; }
-.subtitle { color: #64748b; font-size: 14px; margin-bottom: 20px; }
-h2 { color: #c4b5fd; margin: 0 0 12px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
-.card { background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155; }
-.card-row { display: flex; gap: 16px; flex-wrap: wrap; }
-.card-row .card { flex: 1; min-width: 300px; }
-.label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-select, input, button { width: 100%; padding: 8px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 14px; margin-bottom: 8px; outline: none; transition: border-color .2s; }
-select:focus, input:focus { border-color: #7c3aed; }
-select option { background: #1e293b; }
-button { background: linear-gradient(135deg, #7c3aed, #6d28d9); border: none; cursor: pointer; font-weight: 600; transition: all .2s; }
-button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,.3); }
-button.secondary { background: #334155; }
-button.secondary:hover { transform: none; box-shadow: none; background: #475569; }
-button.danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
-button.danger:hover { box-shadow: 0 4px 12px rgba(220,38,38,.3); }
-button.small { width: auto; padding: 4px 12px; font-size: 12px; }
-.flag-row { display: flex; gap: 8px; margin-bottom: 4px; }
-.flag-row input { flex: 1; margin-bottom: 0; }
-.flag-row button { width: auto; }
-.mt-8 { margin-top: 8px; }
-.text-sm { font-size: 12px; color: #94a3b8; }
-.text-xs { font-size: 11px; color: #475569; }
-.flex { display: flex; justify-content: space-between; align-items: center; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-.badge-local { background: #1e3a5f; color: #60a5fa; }
-.badge-ollama { background: #3b1f3b; color: #c084fc; }
-.badge-running { background: #064e3b; color: #34d399; }
-.badge-stopped { background: #450a0a; color: #f87171; }
-.instances-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
-.instance-card { border-left: 4px solid #22c55e; padding: 14px; background: #1e293b; border-radius: 0 10px 10px 0; border: 1px solid #334155; border-left-width: 4px; transition: all .2s; }
-.instance-card:hover { border-color: #475569; background: #1e3a5f10; }
-.instance-card.stopped { border-left-color: #ef4444; opacity: .6; }
-.instance-card .title { font-weight: 600; font-size: 14px; word-break: break-all; color: #f1f5f9; }
-.instance-card .meta { font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.instance-card .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-.chat-msgs { flex: 1; overflow-y: auto; padding: 12px; background: #0f172a; border-radius: 8px; margin-bottom: 8px; font-size: 13px; line-height: 1.6; }
-.chat-msgs .msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.5; }
-.chat-msgs .user { background: #1e3a5f; margin-left: auto; border-bottom-right-radius: 4px; }
-.chat-msgs .assistant { background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
-.chat-msgs .system { background: transparent; color: #64748b; font-style: italic; font-size: 11px; text-align: center; max-width: 100%; }
-.chat-input-row { display: flex; gap: 8px; }
-.chat-input-row input { flex: 1; margin-bottom: 0; border-radius: 8px; }
-.chat-input-row button { width: auto; padding: 8px 20px; border-radius: 8px; }
-.empty-state { text-align: center; padding: 40px 20px; color: #475569; }
-.empty-state .icon { font-size: 40px; margin-bottom: 10px; }
-.chat-panel { display: none; }
-.chat-panel.active { display: flex; flex-direction: column; height: 450px; }
-.instance-selector { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-.instance-selector select { margin-bottom: 0; }
-.model-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:6px; transition:background .2s; }
-.model-row:hover { background: #0f172a; }
-.model-row .name { font-size:13px; color:#e2e8f0; }
-.model-row .info { font-size:11px; color:#64748b; margin-top:2px; }
+:root { --bg: #0b1121; --surface: #151d32; --border: #1e2a45; --text: #e2e8f0; --muted: #64748b; --accent: #7c3aed; --accent-hover: #6d28d9; --green: #22c55e; --red: #ef4444; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); }
+.header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+.header h1 { font-size:18px; font-weight:700; color:#a78bfa; letter-spacing:-.3px; }
+.header h1 span { color:var(--muted); font-weight:400; font-size:12px; margin-left:8px; }
+.header .nav { display:flex; gap:4px; }
+.header .nav a { padding:6px 16px; border-radius:6px; font-size:13px; font-weight:500; color:var(--muted); text-decoration:none; cursor:pointer; transition:all .2s; }
+.header .nav a:hover { color:var(--text); background:rgba(255,255,255,.05); }
+.header .nav a.active { color:var(--text); background:rgba(124,58,237,.15); }
+.main { display:flex; height:calc(100vh - 57px); }
+.tab-content { display:none; flex:1; padding:24px; overflow-y:auto; }
+.tab-content.active { display:block; }
+.card { background:var(--surface); border-radius:10px; border:1px solid var(--border); padding:20px; margin-bottom:16px; }
+.card-title { font-size:14px; font-weight:600; color:#c4b5fd; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.row { display:flex; gap:16px; flex-wrap:wrap; }
+.row > * { flex:1; min-width:280px; }
+label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; display:block; }
+select, input, textarea { width:100%; padding:8px 12px; background:#0b1121; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; transition:border-color .2s; margin-bottom:8px; }
+select:focus, input:focus { border-color:var(--accent); }
+select option { background:var(--surface); }
+button { padding:8px 16px; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
+button.primary { background:var(--accent); color:#fff; }
+button.primary:hover { background:var(--accent-hover); }
+button.secondary { background:rgba(255,255,255,.08); color:var(--text); }
+button.secondary:hover { background:rgba(255,255,255,.12); }
+button.danger { background:var(--red); color:#fff; }
+button.danger:hover { opacity:.85; }
+button.sm { padding:4px 10px; font-size:11px; }
+.inline-flex { display:flex; gap:8px; align-items:center; }
+.inline-flex button { white-space:nowrap; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; }
+.inst-card { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--green); border-radius:8px; padding:14px; transition:all .15s; }
+.inst-card:hover { border-color:#475569; }
+.inst-card.stopped { border-left-color:var(--red); opacity:.6; }
+.inst-card .top { font-weight:600; font-size:13px; word-break:break-all; }
+.inst-card .mid { font-size:11px; color:var(--muted); margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.inst-card .btns { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
+.badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; }
+.badge-green { background:#064e3b; color:#34d399; }
+.badge-red { background:#450a0a; color:#f87171; }
+.badge-blue { background:#1e3a5f; color:#60a5fa; }
+.badge-purple { background:#3b1f3b; color:#c084fc; }
+.model-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:6px; transition:background .15s; }
+.model-row:hover { background:rgba(255,255,255,.03); }
+.model-row .name { font-size:13px; color:var(--text); }
+.model-row .info { font-size:11px; color:var(--muted); margin-top:2px; }
+.chat-box { display:flex; flex-direction:column; height:calc(100vh - 200px); }
+.chat-msgs { flex:1; overflow-y:auto; padding:12px; background:#0b1121; border-radius:8px; margin-bottom:8px; font-size:13px; line-height:1.6; }
+.chat-msgs .msg { margin-bottom:10px; padding:8px 12px; border-radius:10px; max-width:85%; line-height:1.5; }
+.chat-msgs .msg.user { background:#1e3a5f; margin-left:auto; border-bottom-right-radius:4px; }
+.chat-msgs .msg.assistant { background:var(--surface); border:1px solid var(--border); border-bottom-left-radius:4px; }
+.chat-msgs .msg.system { background:transparent; color:var(--muted); font-style:italic; font-size:11px; text-align:center; max-width:100%; }
+.chat-bottom { display:flex; gap:8px; }
+.chat-bottom input { flex:1; margin-bottom:0; }
+.chat-bottom button { padding:8px 20px; }
+.empty { text-align:center; padding:60px 20px; color:var(--muted); }
+.empty .icon { font-size:36px; margin-bottom:10px; }
+.gap-8 { gap:8px; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 .loading { animation:pulse 1.5s infinite; }
 @media(max-width:768px){
-  .card-row { flex-direction:column; }
-  .instances-grid { grid-template-columns:1fr; }
+  .main { flex-direction:column; }
+  .grid { grid-template-columns:1fr; }
+  .header .nav a { padding:6px 10px; font-size:12px; }
 }
 </style>
 </head>
 <body>
-<div class="flex"><h1>go-llama</h1> <span class="subtitle" style="margin-bottom:0">v0.1.0</span></div>
-<div class="subtitle">llama.cpp instance manager</div>
 
-<div class="card-row">
-  <div class="card">
-    <h2>📥 Pull Model</h2>
-    <input type="text" id="pullInput" placeholder="hf.co/user/repo:Q4_K_M" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M">
-    <button onclick="pullModel()" id="pullBtn">Pull</button>
-    <div id="pullStatus" class="text-sm" style="margin-top:4px"></div>
-  </div>
-
-  <div class="card">
-    <h2>🚀 New Instance</h2>
-    <div class="label">Model</div>
-    <select id="modelSelect"><option value="">Loading models...</option></select>
-    <div class="label">Port</div>
-    <input type="number" id="portInput" value="8081" min="8081" max="8099">
-    <div class="label">Flags</div>
-    <div id="flagsContainer">
-      <div class="flag-row">
-        <input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input">
-        <button class="small danger" onclick="this.parentElement.remove()">x</button>
-      </div>
-    </div>
-    <button class="secondary small" onclick="addFlag()">+ Add Flag</button>
-    <button class="mt-8" onclick="launchInstance()">Launch</button>
+<div class="header">
+  <h1>⚡ go-llama <span>v0.1.0</span></h1>
+  <div class="nav">
+    <a onclick="switchTab('instances')" id="tab-instances-btn" class="active">Instances</a>
+    <a onclick="switchTab('models')" id="tab-models-btn">Models</a>
+    <a onclick="switchTab('chat')" id="tab-chat-btn">Chat</a>
   </div>
 </div>
 
-<div class="card-row">
-  <div class="card" style="flex:1">
-    <h2>📦 Downloaded Models <span id="modelCount" class="text-sm" style="font-weight:400"></span></h2>
-    <div id="modelList"><div class="text-sm">Loading...</div></div>
-  </div>
+<div class="main">
 
-  <div class="card" style="flex:1">
-    <h2>🟢 Running Instances <span id="instanceCount" class="text-sm" style="font-weight:400"></span></h2>
-    <div id="instances" class="instances-grid"><div class="text-sm">Loading...</div></div>
-  </div>
-
-  <div class="card" style="flex:1">
-    <h2>💬 Chat</h2>
-    <div class="instance-selector">
-      <select id="chatInstanceSelect" onchange="selectChatInstance()"><option value="">— select running instance —</option></select>
-      <button class="small secondary" onclick="refreshChat()">↻</button>
-    </div>
-    <div id="chatPanel" class="chat-panel">
-      <div id="chatMsgs" class="chat-msgs"></div>
-      <div class="chat-input-row">
-        <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key=='Enter')sendChat()">
-        <button onclick="sendChat()">Send</button>
+<!-- ── Instances Tab ── -->
+<div id="tab-instances" class="tab-content active">
+  <div class="row" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">🚀 New Instance</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="flex:2;min-width:180px">
+          <label>Model</label>
+          <select id="modelSelect"><option value="">Loading...</option></select>
+        </div>
+        <div style="flex:1;min-width:80px">
+          <label>Port</label>
+          <input type="number" id="portInput" value="8081" min="8081" max="8099">
+        </div>
+      </div>
+      <label style="margin-top:8px">Flags</label>
+      <div id="flagsContainer">
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <input type="text" placeholder="e.g. --tensor-split 12,8" class="flag-input" style="flex:1;margin-bottom:0">
+          <button class="danger sm" onclick="this.parentElement.remove()">x</button>
+        </div>
+      </div>
+      <div class="inline-flex" style="margin-top:8px">
+        <button class="secondary sm" onclick="addFlag()">+ Flag</button>
+        <button class="primary" onclick="launchInstance()">Launch</button>
       </div>
     </div>
-    <div id="chatEmpty" class="empty-state">
-      <div class="icon">💬</div>
-      <div>Launch an instance to start chatting</div>
+  </div>
+  <div class="card">
+    <div class="card-title">🟢 Running <span id="instanceCount" style="font-weight:400;font-size:12px;color:var(--muted)"></span></div>
+    <div id="instances" class="grid"><div class="empty"><div class="icon">⏳</div><div>No running instances</div></div></div>
+  </div>
+</div>
+
+<!-- ── Models Tab ── -->
+<div id="tab-models" class="tab-content">
+  <div class="row" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">📥 Pull from HuggingFace</div>
+      <div class="inline-flex">
+        <input type="text" id="pullInput" placeholder="hf.co/user/repo:quant" value="hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M" style="flex:1;margin-bottom:0">
+        <button class="primary" onclick="pullModel()" id="pullBtn">Pull</button>
+      </div>
+      <div id="pullStatus" class="info" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
     </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📦 Local Models <span id="modelCount" style="font-weight:400;font-size:12px;color:var(--muted)"></span></div>
+    <div id="modelList"><div class="empty"><div class="icon">📦</div><div>Pull a model to get started</div></div></div>
+  </div>
+</div>
+
+<!-- ── Chat Tab ── -->
+<div id="tab-chat" class="tab-content">
+  <div class="card" style="flex:1;display:flex;flex-direction:column">
+    <div class="card-title">💬 Chat with Instance</div>
+    <div class="inline-flex" style="margin-bottom:12px">
+      <select id="chatInstanceSelect" onchange="selectChatInstance()" style="flex:1;margin-bottom:0"><option value="">— select a running instance —</option></select>
+      <button class="secondary sm" onclick="refreshChat()">↻</button>
+    </div>
+    <div id="chatPanel" class="chat-box" style="display:none">
+      <div id="chatMsgs" class="chat-msgs"></div>
+      <div class="chat-bottom">
+        <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key=='Enter')sendChat()">
+        <button class="primary" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+    <div id="chatEmpty" class="empty" style="flex:1">
+      <div class="icon">💬</div>
+      <div>Launch an instance and select it above to start chatting</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ── Log Modal ── -->
+<div id="logModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:200">
+  <div style="background:var(--surface);margin:5% auto;padding:20px;width:80%;max-width:700px;max-height:70vh;border-radius:10px;overflow:auto;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong style="font-size:14px;color:#c4b5fd">📋 Instance Logs</strong>
+      <button class="danger sm" onclick="closeLogs()">Close</button>
+    </div>
+    <pre id="logContent" style="background:#0b1121;padding:12px;border-radius:6px;font-size:11px;line-height:1.4;overflow:auto;max-height:55vh;white-space:pre-wrap;color:#94a3b8"></pre>
   </div>
 </div>
 
 <script>
+// ── Tab Switching ──
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.nav a').forEach(function(a){a.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('tab-'+name+'-btn').classList.add('active');
+  if(name=='chat'){refreshChatSelector();}
+}
+
 // ── Model Selector ──
 async function loadModels(){
   var r=await fetch('/api/v1/models'),m=await r.json(),s=document.getElementById('modelSelect'),seen={};
@@ -1283,7 +1335,7 @@ async function loadModels(){
 async function loadModelList(){
   var r=await fetch('/api/v1/models'),m=await r.json(),c=document.getElementById('modelList'),count=0;
   document.getElementById('modelCount').textContent='('+m.length+')';
-  if(!m.length){c.innerHTML='<div class="text-sm">No models downloaded</div>';return;}
+  if(!m.length){c.innerHTML='<div class="empty"><div class="icon">📦</div><div>No models downloaded</div></div>';return;}
   c.innerHTML=m.map(function(x){
     var name=x.name||'(unnamed)',size=x.size?fmtSize(x.size):'?',quant='';
     // Extract quantization from filename
@@ -1315,20 +1367,20 @@ async function deleteModel(name){
 async function loadInstances(){
   var r=await fetch('/api/v1/instances'),list=await r.json(),c=document.getElementById('instances');
   document.getElementById('instanceCount').textContent='('+list.length+')';
-  if(!list.length){c.innerHTML='<div class="text-sm">No running instances</div>';return;}
+  if(!list.length){c.innerHTML='<div class="empty"><div class="icon">⏳</div><div>No running instances. Launch one from the Instances tab.</div></div>';return;}
   c.innerHTML=list.map(function(i){
-    var sc=i.status=='running'?'':'stopped';
-    var bc=i.status=='running'?'badge-running':'badge-stopped';
+    var sc=i.status=='running'?'':' stopped';
+    var bc=i.status=='running'?'badge-green':'badge-red';
     var mn=i.model||'?';
-    var tps=i.tokens_per_sec?'⚡ '+i.tokens_per_sec.toFixed(1)+' t/s':'';
-    return '<div class="instance-card '+sc+'">'+
-      '<div class="title">'+(mn.length>40?mn.slice(0,40)+'...':mn)+'</div>'+
-      '<div class="meta">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span>'+tps+'</div>'+
-      '<div class="actions">'+
-        '<button class="small danger" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
-        '<button class="small secondary" onclick="selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
-        '<button class="small secondary" onclick="window.open(\'http://\'+location.hostname+\':'+i.port+'\',\'_blank\')">🌐 UI</button>'+
-        '<button class="small secondary" onclick="viewLogs('+i.port+')">📋 Logs</button>'+
+    var tps=i.tokens_per_sec?'<span style="color:#22c55e">⚡ '+i.tokens_per_sec.toFixed(1)+' t/s</span>':'';
+    return '<div class="inst-card'+sc+'">'+
+      '<div class="top">'+(mn.length>40?mn.slice(0,40)+'...':mn)+'</div>'+
+      '<div class="mid">Port: '+i.port+' | PID: '+i.pid+' | <span class="badge '+bc+'">'+i.status+'</span> '+tps+'</div>'+
+      '<div class="btns">'+
+        '<button class="danger sm" onclick="stopInstance('+i.port+')">⏹ Stop</button>'+
+        '<button class="secondary sm" onclick="switchTab(\'chat\');selectChatFor('+i.port+',\''+mn.replace(/\'/g,'')+'\')">💬 Chat</button>'+
+        '<button class="secondary sm" onclick="window.open(\'http://\'+location.hostname+\':'+i.port+'\',\'_blank\')">🌐 UI</button>'+
+        '<button class="secondary sm" onclick="viewLogs('+i.port+')">📋 Logs</button>'+
       '</div></div>';
   }).join('');
 }
@@ -1350,7 +1402,7 @@ async function stopInstance(p){
   if(!confirm('Stop instance on port '+p+'?'))return;
   await fetch('/api/v1/instances/stop?port='+p,{method:'POST'});
   loadInstances();refreshChatSelector();
-  if(chatPort==p){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
+  if(chatPort==p){document.getElementById('chatPanel').style.display='none';document.getElementById('chatEmpty').style.display='block';}
 }
 
 function addFlag(){
@@ -1371,20 +1423,21 @@ async function refreshChatSelector(){
     var mn=i.model||'?';
     s.innerHTML+='<option value="'+i.port+'"'+(chatPort==i.port?' selected':'')+'>'+i.port+' - '+(mn.length>35?mn.slice(0,35)+'...':mn)+'</option>';
   });
-  if(!list.length){document.getElementById('chatPanel').classList.remove('active');document.getElementById('chatEmpty').style.display='block';}
+  if(!list.length){document.getElementById('chatPanel').style.display='none';document.getElementById('chatEmpty').style.display='block';}
 }
 
 function selectChatInstance(){
   var s=document.getElementById('chatInstanceSelect');
   chatPort=parseInt(s.value)||0;
-  if(chatPort){chatHistory=[];document.getElementById('chatMsgs').innerHTML='';document.getElementById('chatPanel').classList.add('active');document.getElementById('chatEmpty').style.display='none';addSystemMsg('Connected to instance on port '+chatPort);}
+  if(chatPort){chatHistory=[];document.getElementById('chatMsgs').innerHTML='';document.getElementById('chatPanel').style.display='flex';document.getElementById('chatEmpty').style.display='none';addSystemMsg('Connected to instance on port '+chatPort);}
 }
 
 function selectChatFor(port,model){
+  switchTab('chat');
   chatPort=port;chatHistory=[];
   document.getElementById('chatInstanceSelect').value=port;
   document.getElementById('chatMsgs').innerHTML='';
-  document.getElementById('chatPanel').classList.add('active');
+  document.getElementById('chatPanel').style.display='flex';
   document.getElementById('chatEmpty').style.display='none';
   addSystemMsg('Chatting with '+(model||'port '+port));
 }
