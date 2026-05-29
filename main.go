@@ -1262,6 +1262,7 @@ button.small { width:auto; padding:4px 10px; font-size:11px; border-radius:6px; 
 .model-row .info { font-size:11px; color:var(--muted); margin-top:2px; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 .loading { animation:pulse 1.5s infinite; }
+.chat-loading { animation:pulse 1.2s infinite; display:inline-block; letter-spacing:4px; font-size:18px; line-height:1; color:var(--muted); }
 @media(max-width:768px){.card-row{flex-direction:column}.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -1435,21 +1436,25 @@ function selectChatFor(port,model){
 
 function addSystemMsg(t){var c=document.getElementById('chatMsgs');c.innerHTML+='<div class="msg system">'+t+'</div>';c.scrollTop=c.scrollHeight;}
 function addMsg(r,t,re){
-  var c=document.getElementById('chatMsgs'),h=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  var html='<div class="msg '+r+'">';
-  if(re){var r2=re.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');html+='<div style="color:#64748b;font-style:italic;font-size:12px;border-left:2px solid #1f2937;padding-left:8px;margin-bottom:4px">'+r2+'</div>';}
-  c.innerHTML+=html+h+'</div>';c.scrollTop=c.scrollHeight;
+  var c=document.getElementById('chatMsgs');
+  var el=document.createElement('div');el.className='msg '+r;
+  if(re){var r2=re.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');var rd=document.createElement('div');rd.style.cssText='color:var(--muted);font-style:italic;font-size:12px;border-left:2px solid var(--border);padding-left:8px;margin-bottom:4px';rd.innerHTML=r2;c.appendChild(rd);}
+  if(t.indexOf('<')===-1&&t.indexOf('&')===-1){el.textContent=t;}else{el.innerHTML=t;}
+  c.appendChild(el);c.scrollTop=c.scrollHeight;return el;
 }
 
 async function sendChat(){
   var input=document.getElementById('chatInput'),msg=input.value.trim();
   if(!msg||!chatPort)return;
   input.value='';addMsg('user',msg);chatHistory.push({role:'user',content:msg});
+  var li=addMsg('assistant','<span class="chat-loading">● ● ●</span>');
   try{
     var r=await fetch('/api/v1/chat?port='+chatPort,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'default',messages:chatHistory.slice(-20),max_tokens:256,stream:false})});
     var d=await r.json(),msg=d.choices&&d.choices[0]&&d.choices[0].message?d.choices[0].message:{},reply=msg.content||'(no response)',reasoning=msg.reasoning_content||'';
-    chatHistory.push({role:'assistant',content:reply});addMsg('assistant',reply,reasoning);
-  }catch(e){addMsg('system','Error: '+e.message);}
+    chatHistory.push({role:'assistant',content:reply});
+    li.innerHTML=reply;li.className='msg assistant';
+    if(reasoning){var r2=reasoning.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');li.insertAdjacentHTML('beforebegin','<div style="color:var(--muted);font-style:italic;font-size:12px;border-left:2px solid var(--border);padding-left:8px;margin-bottom:4px">'+r2+'</div>');}
+  }catch(e){li.innerHTML='Error: '+e.message;li.className='msg system';}
 }
 
 // ── Logs ──
