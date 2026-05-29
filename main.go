@@ -953,6 +953,7 @@ Then run 'gollama update' again.`)
 	}
 	defer gzr.Close()
 
+	extractDir := binDir()
 	tr := tar.NewReader(gzr)
 	found := false
 	for {
@@ -964,27 +965,35 @@ Then run 'gollama update' again.`)
 			return fmt.Errorf("extracting: %w", err)
 		}
 		name := filepath.Base(header.Name)
-		if name == "llama-server" || name == "llama-server.exe" {
-			outFile := filepath.Join(binDir(), name)
+		if name == "" || name == "." || name == ".." {
+			continue
+		}
+		outFile := filepath.Join(extractDir, name)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(outFile, 0755)
+		case tar.TypeSymlink:
+			os.Symlink(header.Linkname, outFile)
+		default:
 			outF, err := os.Create(outFile)
 			if err != nil {
-				return err
+				return fmt.Errorf("creating %s: %w", name, err)
 			}
 			if _, err := io.Copy(outF, tr); err != nil {
 				outF.Close()
 				return err
 			}
 			outF.Close()
-			os.Chmod(outFile, 0755)
+			os.Chmod(outFile, os.FileMode(header.Mode))
+		}
+		if name == "llama-server" || name == "llama-server.exe" {
 			found = true
-			break
 		}
 	}
 
 	if !found {
 		return fmt.Errorf("llama-server not found in downloaded archive")
 	}
-
 	os.WriteFile(versionFile(), []byte(tagName), 0644)
 	log.Printf("llama-server installed: version=%s backend=%s path=%s", tagName, selected.Name, self)
 	fmt.Printf("\nllama-server %s (%s) installed to %s\n", tagName, selected.Name, self)
