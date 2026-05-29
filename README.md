@@ -1,4 +1,4 @@
-# go-llama
+# gollama
 
 A lightweight llama.cpp instance manager with full parameter control.
 Spin up any model on any port with any llama-server flag.
@@ -6,45 +6,45 @@ Spin up any model on any port with any llama-server flag.
 ## Install
 
 ```bash
-curl -fsSL https://go-llama.dev/install.sh | sh
+curl -fsSL https://gollama.dev/install.sh | sh
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/majidkorai/go-llama
-cd go-llama
-go build -o go-llama .
+git clone https://github.com/majidkorai/gollama
+cd gollama
+go build -o gollama .
 ```
 
 ## Quick Start
 
 ```bash
 # 1. Interactive install — detects GPU, choose CPU/CUDA/Vulkan
-go-llama update
+gollama update
 
 # 2. Pull a model from HuggingFace
-go-llama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
+gollama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
 
 # 3. Run with custom flags (blocking, shows output)
-go-llama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
+gollama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
 
 # 4. Start the web UI manager
-go-llama serve
+gollama serve
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `go-llama update` | Interactive install — detects GPU, choose CPU/CUDA/Vulkan/ROCm |
-| `go-llama pull <model>` | Download a GGUF model from HuggingFace |
-| `go-llama list` | List downloaded models |
-| `go-llama run <model> [flags]` | Run a model on port 8081 (blocking, shows output) |
-| `go-llama serve [port]` | Web UI + REST API on :9080 |
-| `go-llama ps` | List running instances |
-| `go-llama stop <port>` | Stop an instance |
-| `go-llama --version` | Show version |
+| `gollama update` | Interactive install — detects GPU, choose CPU/CUDA/Vulkan/ROCm |
+| `gollama pull <model>` | Download a GGUF model from HuggingFace |
+| `gollama list` | List downloaded models |
+| `gollama run <model> [flags]` | Run a model on port 8081 (blocking, shows output) |
+| `gollama serve [port]` | Web UI + REST API on :9080 |
+| `gollama ps` | List running instances |
+| `gollama stop <port>` | Stop an instance |
+| `gollama --version` | Show version |
 
 ## Web UI
 
@@ -75,7 +75,7 @@ Any llama-server flag works. Common ones:
 ## Architecture
 
 ```
-~/.go-llama/
+~/.gollama/
 ├── bin/
 │   └── llama-server        # Inference engine (auto-downloaded or built)
 ├── models/
@@ -87,17 +87,17 @@ Any llama-server flag works. Common ones:
 
 ## Notes
 
-- **VRAM**: go-llama needs free GPU memory. Stop Ollama (`systemctl stop ollama`)
+- **VRAM**: gollama needs free GPU memory. Stop Ollama (`systemctl stop ollama`)
   before launching instances if both use the same GPUs.
 - **Linux CUDA**: pre-built CUDA binaries are not available for Linux on the
   llama.cpp release page. Build from source or use the Vulkan build instead.
-  See `go-llama update` for build instructions.
+  See `gollama update` for build instructions.
 - **Multi-instance**: each instance runs on its own port (8081, 8082, ...).
   Chat with any running instance from the web UI.
 
-## Why go-llama?
+## Why gollama?
 
-Ollama hides llama.cpp flags and hardcodes defaults. go-llama exposes every
+Ollama hides llama.cpp flags and hardcodes defaults. gollama exposes every
 parameter while keeping convenience — model management, web UI, multi-instance,
 built-in chat, and full llama-server control. Perfect for multi-GPU setups,
 MTP testing, or when you need precise control over inference.
@@ -110,7 +110,7 @@ MTP testing, or when you need precise control over inference.
 - [x] llama-server auto-download with interactive GPU detection
 - [x] Web UI: pull models, launch/stop instances, chat, log viewer
 - [x] CORS-free chat proxy
-- [x] Instance log capture (stderr written to `~/.go-llama/logs/`)
+- [x] Instance log capture (stderr written to `~/.gollama/logs/`)
 
 ### Phase 2 — Next
 - [ ] Presets: save/load flag configurations
@@ -128,9 +128,9 @@ MTP testing, or when you need precise control over inference.
 ## Building from Source
 
 ```bash
-git clone https://github.com/majidkorai/go-llama
-cd go-llama
-go build -o go-llama .
+git clone https://github.com/majidkorai/gollama
+cd gollama
+go build -o gollama .
 ```
 ## User interface 
 

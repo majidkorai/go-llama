@@ -50,7 +50,7 @@ type ModelInfo struct {
 
 func goLLamaDir() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".go-llama")
+	return filepath.Join(home, ".gollama")
 }
 
 func modelsDir() string {
@@ -195,7 +195,7 @@ func (m *Manager) recoverOrphans() {
 }
 
 func findLlamaServer() string {
-	// 1. Check go-llama's own bin directory first
+	// 1. Check gollama's own bin directory first
 	self := filepath.Join(binDir(), "llama-server")
 	if _, err := os.Stat(self); err == nil {
 		return self
@@ -219,7 +219,7 @@ func findLlamaServer() string {
 }
 
 func resolveModelBlob(model string) (string, error) {
-	// Check go-llama local models
+	// Check gollama local models
 	idx := loadIndex()
 	if info, ok := idx[model]; ok {
 		if _, err := os.Stat(info.BlobPath); err == nil {
@@ -368,7 +368,7 @@ func (m *Manager) List() []*Instance {
 func listModels() ([]ModelInfo, error) {
 	var models []ModelInfo
 
-	// Scan go-llama's local model storage
+	// Scan gollama's local model storage
 	idx := loadIndex()
 	for _, info := range idx {
 		if _, err := os.Stat(info.BlobPath); err == nil {
@@ -563,7 +563,7 @@ func startServer(mgr *Manager, port string) {
 	})
 
 	addr := fmt.Sprintf(":%s", port)
-	log.Printf("go-llama listening on %s", addr)
+	log.Printf("gollama listening on %s", addr)
 	log.Printf("Web UI: http://localhost%s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("server error: %v", err)
@@ -868,9 +868,9 @@ To build llama-server with CUDA:
   cd llama.cpp
   cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="75-real;86-real"
   cmake --build build -j --target llama-server
-  cp build/bin/llama-server ~/.go-llama/bin/
+  cp build/bin/llama-server ~/.gollama/bin/
 
-Then run 'go-llama update' again.`)
+Then run 'gollama update' again.`)
 				return nil
 			default:
 				return fmt.Errorf("installation cancelled")
@@ -973,7 +973,7 @@ const version = "0.1.0"
 func main() {
 	if len(os.Args) < 2 || os.Args[1] == "--version" || os.Args[1] == "-v" {
 		if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
-			fmt.Printf("go-llama %s\n", version)
+			fmt.Printf("gollama %s\n", version)
 			return
 		}
 		printUsage()
@@ -996,8 +996,8 @@ func main() {
 
 	case "pull":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: go-llama pull hf.co/user/repo:quant")
-			fmt.Println("  e.g. go-llama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M")
+			fmt.Println("Usage: gollama pull hf.co/user/repo:quant")
+			fmt.Println("  e.g. gollama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M")
 			os.Exit(1)
 		}
 		modelRef := os.Args[2]
@@ -1013,7 +1013,7 @@ func main() {
 			os.Exit(1)
 		}
 		if len(models) == 0 {
-			fmt.Println("No models found. Use 'go-llama pull <model>' to download one.")
+			fmt.Println("No models found. Use 'gollama pull <model>' to download one.")
 			return
 		}
 		fmt.Printf("%-40s %-10s %s\n", "Name", "Size", "Source")
@@ -1047,12 +1047,12 @@ func main() {
 		if len(os.Args) > 2 {
 			port = os.Args[2]
 		}
-		fmt.Printf("go-llama starting on :%s\n", port)
+		fmt.Printf("gollama starting on :%s\n", port)
 		startServer(mgr, port)
 
 	case "run":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: go-llama run <model> [flags...]")
+			fmt.Println("Usage: gollama run <model> [flags...]")
 			os.Exit(1)
 		}
 		// Auto-ensure llama-server is available
@@ -1089,7 +1089,7 @@ func main() {
 
 	case "stop":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: go-llama stop <port>")
+			fmt.Println("Usage: gollama stop <port>")
 			os.Exit(1)
 		}
 		port, _ := strconv.Atoi(os.Args[2])
@@ -1106,27 +1106,27 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println(`go-llama — llama.cpp instance manager
+	fmt.Println(`gollama — llama.cpp instance manager
 
 Usage:
-  go-llama update                 Download/update llama-server binary
-  go-llama pull <model>           Download model from HuggingFace
-  go-llama list                   List available models
-  go-llama serve [port]           Start manager with web UI (default :9080)
-  go-llama run <model> [flags]    Quick-start a model on port 8081
-  go-llama ps                     List running instances
-  go-llama stop <port>            Stop an instance
+  gollama update                 Download/update llama-server binary
+  gollama pull <model>           Download model from HuggingFace
+  gollama list                   List available models
+  gollama serve [port]           Start manager with web UI (default :9080)
+  gollama run <model> [flags]    Quick-start a model on port 8081
+  gollama ps                     List running instances
+  gollama stop <port>            Stop an instance
 
 Examples:
-  go-llama update
-  go-llama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
-  go-llama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
-  go-llama serve
+  gollama update
+  gollama pull hf.co/Jackrong/Qwopus3.6-27B-v2-GGUF:Q4_K_M
+  gollama run Qwopus3.6-27B-v2-Q4_K_M.gguf --tensor-split 12,8 --flash-attn on
+  gollama serve
 
 Tip:
-  Models are stored in ~/.go-llama/models/
-  llama-server binary in ~/.go-llama/bin/ (auto-downloaded via 'go-llama update')
-  For CUDA on Linux: build from source and copy the binary to ~/.go-llama/bin/`)
+  Models are stored in ~/.gollama/models/
+  llama-server binary in ~/.gollama/bin/ (auto-downloaded via 'gollama update')
+  For CUDA on Linux: build from source and copy the binary to ~/.gollama/bin/`)
 }
 
 // ── Web UI ─────────────────────────────────────────────────────────────
@@ -1136,7 +1136,7 @@ const uiPage = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>go-llama</title>
+<title>gollama</title>
 <style>
 :root { --bg:#0a0a0a; --surface:#1a1a1a; --border:#2a2a2a; --text:#e5e5e5; --muted:#888; --accent:#7c3aed; --accent-hover:#6d28d9; --green:#22c55e; --red:#ef4444; --header-text:#a78bfa; --card-title:#c4b5fd; --input-bg:#0a0a0a; --select-bg:#1a1a1a; --hover-bg:#222; --badge-green-bg:#064e3b; --badge-green-text:#34d399; --badge-red-bg:#450a0a; --badge-red-text:#f87171; --badge-blue-bg:#1a1a3a; --badge-blue-text:#818cf8; --chat-user-bg:#1e293b; }
 .light { --bg:#f5f5f5; --surface:#fff; --border:#ddd; --text:#1a1a1a; --muted:#777; --accent:#7c3aed; --accent-hover:#6d28d9; --green:#16a34a; --red:#dc2626; --header-text:#6d28d9; --card-title:#5b21b6; --input-bg:#f5f5f5; --select-bg:#fff; --hover-bg:#eee; --badge-green-bg:#dcfce7; --badge-green-text:#166534; --badge-red-bg:#fee2e2; --badge-red-text:#991b1b; --badge-blue-bg:#e0e7ff; --badge-blue-text:#4338ca; --chat-user-bg:#e0e7ff; }
@@ -1203,7 +1203,7 @@ button.small { width:auto; padding:4px 10px; font-size:11px; border-radius:6px; 
 </style>
 </head>
 <body>
-<div class="flex"><h1>go-llama</h1> <button id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button></div>
+<div class="flex"><h1>gollama</h1> <button id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button></div>
 <div class="subtitle">llama.cpp instance manager</div>
 
 <div class="card-row">
@@ -1268,7 +1268,7 @@ button.small { width:auto; padding:4px 10px; font-size:11px; border-radius:6px; 
 async function loadModels(){
   var r=await fetch('/api/v1/models'),m=await r.json(),s=document.getElementById('modelSelect'),seen={};
   s.innerHTML='<option value="">— Select model —</option>';
-  if(!m||!m.length){s.innerHTML+='<option value="" disabled>No models found. Use go-llama pull.</option>';return;}
+  if(!m||!m.length){s.innerHTML+='<option value="" disabled>No models found. Use gollama pull.</option>';return;}
   m.forEach(function(x){
     var n=x.name||'(unnamed)',src=x.source||'unknown';
     if(!seen[n]){seen[n]=1;s.innerHTML+='<option value="'+n+'">'+n+' ['+src+']</option>';}
@@ -1418,10 +1418,10 @@ function toggleTheme(){
   var b=document.body;
   b.classList.toggle('light');
   document.getElementById('themeToggle').textContent=b.classList.contains('light')?'☀️':'🌙';
-  localStorage.setItem('go-llama-theme',b.classList.contains('light')?'light':'dark');
+  localStorage.setItem('gollama-theme',b.classList.contains('light')?'light':'dark');
 }
 (function(){
-  if(localStorage.getItem('go-llama-theme')==='light'){document.body.classList.add('light');document.getElementById('themeToggle').textContent='☀️';}
+  if(localStorage.getItem('gollama-theme')==='light'){document.body.classList.add('light');document.getElementById('themeToggle').textContent='☀️';}
 })();
 
 // ── Init ──

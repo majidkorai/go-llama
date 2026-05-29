@@ -1,5 +1,5 @@
-module github.com/majidkorai/go-llama
+module github.com/majidkorai/gollama
 
 go 1.23.0
 
-replace github.com/majidkorai/go-llama => ./
+replace github.com/majidkorai/gollama => ./
