@@ -96,6 +96,9 @@ func indexFile() string {
 func versionFile() string {
 	return filepath.Join(goLLamaDir(), "llama-server-version.txt")
 }
+func backendFile() string {
+	return filepath.Join(goLLamaDir(), "llama-server-backend.txt")
+}
 
 func ensureDir(dir string) {
 	os.MkdirAll(dir, 0755)
@@ -290,20 +293,26 @@ func (m *Manager) Start(model string, port int, extraArgs []string) (*Instance, 
 		"--host", "0.0.0.0",
 		"--port", strconv.Itoa(port),
 	}
-	hasNGL, hasTS := false, false
-	for _, a := range extraArgs {
-		if a == "--n-gpu-layers" || a == "-ngl" {
-			hasNGL = true
+	isCPU := func() bool {
+		d, _ := os.ReadFile(backendFile())
+		return strings.TrimSpace(string(d)) == "CPU"
+	}()
+	if !isCPU {
+		hasNGL, hasTS := false, false
+		for _, a := range extraArgs {
+			if a == "--n-gpu-layers" || a == "-ngl" {
+				hasNGL = true
+			}
+			if a == "--tensor-split" || a == "-ts" {
+				hasTS = true
+			}
 		}
-		if a == "--tensor-split" || a == "-ts" {
-			hasTS = true
+		if !hasNGL {
+			args = append(args, "--n-gpu-layers", "99")
 		}
-	}
-	if !hasNGL {
-		args = append(args, "--n-gpu-layers", "99")
-	}
-	if !hasTS {
-		args = append(args, "--tensor-split", "12,8")
+		if !hasTS {
+			args = append(args, "--tensor-split", "12,8")
+		}
 	}
 	args = append(args, extraArgs...)
 
@@ -995,6 +1004,7 @@ Then run 'gollama update' again.`)
 		return fmt.Errorf("llama-server not found in downloaded archive")
 	}
 	os.WriteFile(versionFile(), []byte(tagName), 0644)
+	os.WriteFile(backendFile(), []byte(selected.Name), 0644)
 	log.Printf("llama-server installed: version=%s backend=%s path=%s", tagName, selected.Name, self)
 	fmt.Printf("\nllama-server %s (%s) installed to %s\n", tagName, selected.Name, self)
 	return nil
